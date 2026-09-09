@@ -3,9 +3,11 @@ import type {
   Category,
   GatekeepingModel,
   GatekeepingModels,
+  Meta,
   Program,
   ProgramCategory,
   ProgramsData,
+  StaleOfficialPage,
 } from "@/types/program";
 
 const data = rawData as ProgramsData;
@@ -60,4 +62,12 @@ export function getSchoolBySlug(slug: string): string | undefined {
 
 export function getProgramsBySchoolSlug(slug: string): Program[] {
   return data.programs.filter((program) => getSchoolSlug(program.school) === slug);
+}
+
+export function getMeta(): Meta {
+  return data.meta;
+}
+
+export function getStaleOfficialPages(): StaleOfficialPage[] {
+  return data.staleOfficialPages;
 }

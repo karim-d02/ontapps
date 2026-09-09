@@ -10,7 +10,7 @@ import {
   getProgramById,
   getSchoolSlug,
 } from "@/lib/programs";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type {
   AverageEntry,
   Courses,
@@ -38,15 +38,6 @@ const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
   twoYearsIn: "Two years in",
   hybrid: "Hybrid",
 };
-
-function formatDate(iso: string): string {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export default async function ProgramPage({
   params,
