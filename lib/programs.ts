@@ -2,6 +2,7 @@ import rawData from "@/data/programs.json";
 import type {
   Category,
   GatekeepingModel,
+  GatekeepingModels,
   Program,
   ProgramCategory,
   ProgramsData,
@@ -35,6 +36,10 @@ export function getCategoryLabel(id: ProgramCategory): string | undefined {
 
 export function getGatekeepingDescription(model: GatekeepingModel): string {
   return data.gatekeepingModels[model];
+}
+
+export function getGatekeepingModels(): GatekeepingModels {
+  return data.gatekeepingModels;
 }
 
 export function slugify(value: string): string {
