@@ -20,6 +20,8 @@ export interface SeriesPointMarkerStyle {
   outlineColor?: string;
   /** Point radius in px. Default: 5 */
   radius?: number;
+  /** SVG dash pattern for the outer ring (e.g. "4 3"). Omit for a solid ring. */
+  strokeDasharray?: string;
   /** Dim non-active points while hovering. Default: true */
   fadeOnHover?: boolean;
   /** Opacity for non-hovered points when `fadeOnHover` is true. Default: 0.5 */
@@ -43,6 +45,7 @@ interface MarkerCirclesProps {
   outlineWidth: number;
   outlineColor?: string;
   radius: number;
+  strokeDasharray?: string;
 }
 
 function MarkerCircles({
@@ -53,6 +56,7 @@ function MarkerCircles({
   outlineWidth,
   outlineColor,
   radius,
+  strokeDasharray,
 }: MarkerCirclesProps) {
   const resolvedStroke = stroke ?? fill ?? "currentColor";
   const resolvedOutlineColor = outlineColor ?? resolvedStroke;
@@ -79,6 +83,7 @@ function MarkerCircles({
           fill="none"
           r={radius + ringGap + strokeWidth / 2}
           stroke={resolvedStroke}
+          strokeDasharray={strokeDasharray}
           strokeWidth={strokeWidth}
         />
       ) : null}
@@ -103,6 +108,7 @@ export const StaticSeriesPointMarker = memo(function StaticSeriesPointMarker({
   outlineWidth = 0,
   outlineColor,
   radius = 5,
+  strokeDasharray,
 }: StaticSeriesPointMarkerProps) {
   return (
     <g transform={`translate(${cx}, ${cy}) scale(${scale})`}>
@@ -113,6 +119,7 @@ export const StaticSeriesPointMarker = memo(function StaticSeriesPointMarker({
         radius={radius}
         ringGap={ringGap}
         stroke={stroke}
+        strokeDasharray={strokeDasharray}
         strokeWidth={strokeWidth}
       />
     </g>
@@ -146,6 +153,7 @@ export function SeriesPointMarker({
   outlineWidth = 0,
   outlineColor,
   radius = 5,
+  strokeDasharray,
 }: SeriesPointMarkerProps) {
   const variants: Variants = {
     hidden: {
@@ -180,6 +188,7 @@ export function SeriesPointMarker({
           radius={radius}
           ringGap={ringGap}
           stroke={stroke}
+          strokeDasharray={strokeDasharray}
           strokeWidth={strokeWidth}
         />
       </motion.g>

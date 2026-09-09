@@ -39,6 +39,7 @@ interface MarkerStyle {
   outlineWidth: number;
   outlineColor?: string;
   radius: number;
+  strokeDasharray?: string;
 }
 
 export function SeriesMarkers({
@@ -56,6 +57,7 @@ export function SeriesMarkers({
   inactiveBlur = 2,
   enterBlur = 2,
   showActiveHighlight = true,
+  strokeDasharray,
 }: SeriesMarkersProps) {
   // Stable slice only. Hover-driven dim + active-highlight live in the inner
   // <SeriesMarkersDimWrapper> / <SeriesMarkersActiveHighlight> components, so
@@ -150,6 +152,7 @@ export function SeriesMarkers({
       outlineWidth,
       outlineColor,
       radius,
+      strokeDasharray,
     }),
     [
       resolvedFill,
@@ -159,6 +162,7 @@ export function SeriesMarkers({
       outlineWidth,
       outlineColor,
       radius,
+      strokeDasharray,
     ]
   );
 

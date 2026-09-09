@@ -3,6 +3,8 @@
 // are dropped entirely, booleans become Yes/No, arrays and nested objects
 // recurse. Field labels are derived from camelCase keys.
 
+import { cn } from "@/lib/utils";
+
 function labelFromKey(key: string): string {
   const spaced = key
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -19,23 +21,23 @@ function isEmptyValue(value: unknown): boolean {
   return false;
 }
 
-function DetailValueView({ value }: { value: unknown }) {
+function DetailValueView({ value, depth = 0 }: { value: unknown; depth?: number }) {
   if (value === null) {
-    return <>Not published</>;
+    return <span className="text-muted-foreground">Not published</span>;
   }
   if (typeof value === "boolean") {
-    return <>{value ? "Yes" : "No"}</>;
+    return <span>{value ? "Yes" : "No"}</span>;
   }
   if (typeof value === "string" || typeof value === "number") {
-    return <>{value}</>;
+    return <span>{value}</span>;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
     return (
-      <ul>
+      <ul className="space-y-1.5">
         {value.map((item, index) => (
-          <li key={index}>
-            <DetailValueView value={item} />
+          <li key={index} className="text-body text-foreground">
+            <DetailValueView value={item} depth={depth} />
           </li>
         ))}
       </ul>
@@ -47,12 +49,12 @@ function DetailValueView({ value }: { value: unknown }) {
     );
     if (entries.length === 0) return null;
     return (
-      <dl>
+      <dl className={cn("space-y-2.5", depth > 0 && "mt-1.5 border-l border-border/60 pl-3")}>
         {entries.map(([key, v]) => (
           <div key={key}>
-            <dt>{labelFromKey(key)}</dt>
-            <dd>
-              <DetailValueView value={v} />
+            <dt className="text-small text-muted-foreground">{labelFromKey(key)}</dt>
+            <dd className="mt-0.5 text-body text-foreground">
+              <DetailValueView value={v} depth={depth + 1} />
             </dd>
           </div>
         ))}
@@ -71,11 +73,11 @@ export function GenericDetails({ data }: { data: Record<string, unknown> }) {
   if (entries.length === 0) return null;
 
   return (
-    <dl>
+    <dl className="space-y-3">
       {entries.map(([key, value]) => (
         <div key={key}>
-          <dt>{labelFromKey(key)}</dt>
-          <dd>
+          <dt className="text-small text-muted-foreground">{labelFromKey(key)}</dt>
+          <dd className="mt-0.5 text-body text-foreground">
             <DetailValueView value={value} />
           </dd>
         </div>
