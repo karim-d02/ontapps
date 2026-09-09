@@ -1,0 +1,1701 @@
+{
+  "meta": {
+    "cycle": "2027 entry",
+    "cycleNote": "Apply fall 2026, start fall 2027. Universities label this both '2027 entry' and the '2026-27 cycle'.",
+    "verifiedOn": "2026-09-08",
+    "disclaimer": "Official figures come from university admissions pages and OUInfo. Community figures are self-reported by applicants and skew high. The two are always labelled separately."
+  },
+  "categories": [
+    {
+      "id": "health",
+      "label": "Health & Med"
+    },
+    {
+      "id": "eng",
+      "label": "Engineering"
+    },
+    {
+      "id": "business",
+      "label": "Business"
+    }
+  ],
+  "gatekeepingModels": {
+    "atTheDoor": "A supplementary application decides admission before you arrive. High stakes, one shot, but you know where you stand by May.",
+    "twoYearsIn": "Admission is comparatively easy. You get in on your Grade 12 average, then compete again on university grades for entry to the actual program.",
+    "hybrid": "Direct entry to the degree, but with a progression requirement after second year."
+  },
+  "staleOfficialPages": [
+    {
+      "page": "Queen's: Supplementary Application FAQ",
+      "problem": "Still lists the submission deadline as 15 February 2024. Three cycles stale.",
+      "checkedOn": "2026-09-08"
+    },
+    {
+      "page": "Rotman Commerce: Important Dates",
+      "problem": "Still shows 15 January 2026 and 2 February 2026, while Rotman's own supplemental page carries the correct 2027 dates. That same page states applications for September 2027 open 'in the fall of 2025'.",
+      "checkedOn": "2026-09-08"
+    },
+    {
+      "page": "Waterloo Engineering: Admissions FAQ",
+      "problem": "Correct 2027 dates near the top, then a line further down still says the AIF is due 30 January 2026.",
+      "checkedOn": "2026-09-08"
+    },
+    {
+      "page": "McMaster: Future Students supplementary applications",
+      "problem": "Lists 2026 dates while McMaster's Faculty of Engineering page has the correct 2027 ones.",
+      "checkedOn": "2026-09-08"
+    }
+  ],
+  "programs": [
+    {
+      "id": "mcmaster-health-sci",
+      "name": "Honours Health Sciences (BHSc)",
+      "school": "McMaster University",
+      "campus": "Hamilton",
+      "category": "health",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "MNS",
+          "label": "Honours Health Sciences"
+        }
+      ],
+      "seats": 240,
+      "applicants": {
+        "figure": "~8,000",
+        "source": "community",
+        "note": "Roughly 3% admitted. Year not confirmed: treat as approximate."
+      },
+      "suppApp": {
+        "required": true,
+        "platform": "McMaster online submission site",
+        "format": "Two essays. Question 1 and Question 2, each offering two options (A/B). Choose one option per question.",
+        "limit": "1,500 characters per response, including spaces and punctuation",
+        "questionsPublishedInAdvance": false,
+        "rubricPublished": false,
+        "evaluators": "Two evaluators, most often fourth-year BHSc students, sometimes staff or faculty",
+        "deadline": {
+          "confirmed": false,
+          "text": "2027 dates not yet published",
+          "estimate": "Last cycle the portal opened 2–5 February with responses due early-to-mid February. Expect similar."
+        },
+        "fee": null,
+        "weighting": {
+          "type": "cluster",
+          "official": true,
+          "summary": "Supp app scores are percentiles and compete directly against GPA.",
+          "clusters": [
+            {
+              "suppAppScore": ">95",
+              "gpa": "90% and above",
+              "outcome": "Offer",
+              "count": 50
+            },
+            {
+              "suppAppScore": "90–94",
+              "gpa": "Low 90s and above",
+              "outcome": "Offer",
+              "count": 100
+            },
+            {
+              "suppAppScore": "85–89",
+              "gpa": "Mid 90s and above",
+              "outcome": "Offer",
+              "count": 150
+            },
+            {
+              "suppAppScore": "80–84",
+              "gpa": "High 90s and above",
+              "outcome": "Uncertain",
+              "count": null
+            }
+          ],
+          "clustersSource": "McMaster open house presentation",
+          "keyLine": "A 90% average scoring 95+ on the supp app can be admitted over a 98% average scoring below 80."
+        }
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "SBI4U",
+          "SCH4U",
+          "One of MCV4U / MHF4U / MDM4U",
+          "One non-math, non-science, non-technology 4U/M credit"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses, co-op excluded from the average",
+        "notes": "The non-science credit is a requirement, not a suggestion."
+      },
+      "averages": [
+        {
+          "source": "McMaster admissions",
+          "type": "official",
+          "figure": "90% minimum to be considered",
+          "note": "A floor, not a competitive number."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "Minimum 90% to be considered",
+          "note": null
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": null,
+          "label": "Supplementary application: dates not yet published",
+          "critical": true,
+          "confirmed": false
+        }
+      ],
+      "traps": [
+        {
+          "title": "A high GPA does not get you in",
+          "body": "The supp app is weighed in consort with your average, and the two compete. Applicants treating it as a formality after hitting 90% are the ones who don't get offers."
+        },
+        {
+          "title": "MNS is not the only McMaster health code",
+          "body": "MNS is the BHSc. It is not MLH (Honours Health & Society) and not the Life Sciences Gateway. Applicants routinely list the wrong one."
+        }
+      ],
+      "prep": {
+        "shape": "Revision, not rehearsal",
+        "time": "1–2 weeks",
+        "note": "Writing the responses takes 1–2 hours. The time goes into revising: tightening hooks, cutting adjectives, fitting 1,500 characters."
+      },
+      "sources": {
+        "official": [
+          "McMaster Honours Health Sciences admissions",
+          "OUInfo MNS",
+          "McMaster open house presentation"
+        ],
+        "reported": [
+          "Youthfully: McMaster BHSc supp app guide (admissions consultancy, commercial interest)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "queens-health-sci",
+      "name": "Bachelor of Health Sciences (BHSc)",
+      "school": "Queen's University",
+      "campus": "Kingston",
+      "category": "health",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "QH",
+          "label": "On-campus, first-year entry"
+        },
+        {
+          "code": "QHQ",
+          "label": "Upper-year transfer"
+        }
+      ],
+      "seats": 420,
+      "applicants": {
+        "figure": "5,000+ in each of the last two cycles",
+        "source": "official",
+        "note": "Queen's does not publish an acceptance rate."
+      },
+      "suppApp": {
+        "required": true,
+        "platform": "Kira Talent",
+        "format": "One written response, then one video response. Fixed order. Questions issued at random and not published in advance.",
+        "components": [
+          {
+            "type": "written",
+            "prompt": "Challenge question",
+            "limit": "335 words",
+            "time": "10 minutes to write AND submit"
+          },
+          {
+            "type": "video",
+            "prompt": "Teamwork question",
+            "limit": "One take",
+            "time": "2 min prepare + 2 min record"
+          }
+        ],
+        "sitting": "About 30 minutes total. Can be split: written now, video later.",
+        "questionsPublishedInAdvance": false,
+        "rubricPublished": true,
+        "rubricNote": "Queen's publishes the full 1–5 scoring instrument for both components. Labelled 2024-25.",
+        "evaluators": "Review teams from Commerce, Health Sciences and Nursing plus Undergraduate Admission staff",
+        "deadline": {
+          "confirmed": true,
+          "date": "2027-02-15",
+          "text": "15 February 2027, 11:59 PM EST. No late submissions."
+        },
+        "fee": null,
+        "weighting": {
+          "type": "unpublished",
+          "official": true,
+          "summary": "No percentage split is published anywhere. Queen's says the supp app is 'very important' and that grades alone will not produce an offer.",
+          "note": "Unlike Mac, there is no published or leaked cluster or percentile model. The absence of a number is itself the finding."
+        },
+        "rubric": {
+          "bands": [
+            "Developing (1)",
+            "Basic (2)",
+            "Competent (3)",
+            "Strong (4)",
+            "Exceptional (5)"
+          ],
+          "written": [
+            "A specific, well-articulated example of a significant challenge",
+            "Initiative, adaptability, persistence in overcoming obstacles",
+            "Problem-solving that is appropriate, thoughtful, and shows planning or creativity",
+            "Meaningful reflection on what was learned and how it shaped perspective going forward"
+          ],
+          "video": [
+            "A vivid, authentic and reflective example",
+            "Appreciation of others' perspectives",
+            "Ownership of contributions and impact on the team",
+            "Maturity, self-direction, composure under pressure",
+            "Handles setbacks or complexity with clarity and purpose"
+          ],
+          "keyInsight": "Every band of both rubrics ends on reflection. Competent (3) is 'a few insights'. Exceptional (5) is 'reflects meaningfully on what they learned and how it shaped their perspective or behaviour going forward'. A great story with no reflection caps at 3.",
+          "notScored": "No marks for prestige of the experience, extracurricular volume, or wanting to be a doctor. Queen's states the questions will not ask you to list your involvement outside the classroom."
+        }
+      },
+      "courses": {
+        "required": [
+          "ENG4U: minimum 80%",
+          "SBI4U",
+          "SCH4U",
+          "One of MHF4U / MCV4U",
+          "Two additional 4U/M courses"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses",
+        "notes": "Francophone applicants may offer EAE4U or FRA4U for the English requirement. Average calculated on prerequisites plus next best 4U/M courses, to six."
+      },
+      "averages": [
+        {
+          "source": "BHSc admission page",
+          "type": "official",
+          "figure": "75% cumulative minimum to be considered; admission average anticipated over 90%",
+          "note": null
+        },
+        {
+          "source": "BHSc FAQ",
+          "type": "official",
+          "figure": "75% minimum; competitive average anticipated high 80s to low 90s",
+          "note": null
+        },
+        {
+          "source": "Queen's Competitive Average table",
+          "type": "official",
+          "figure": "Low 90s",
+          "note": "Minimum for admission consideration, as of last September."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "Mid 90s",
+          "note": "The outlier. Not what Queen's says anywhere on its own pages."
+        },
+        {
+          "source": "Reddit",
+          "type": "community",
+          "figure": "~95%, ±2",
+          "note": "Self-reported, skews high."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2027-02-01",
+          "label": "Application deadline: Commerce, Health Sci and Nursing only",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-15",
+          "label": "Supplementary application deadline, 11:59 PM EST. No late submissions.",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-01",
+          "label": "Application deadline for every other Queen's program",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-31",
+          "label": "All documents due",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-05-21",
+          "label": "All decisions posted on SOLUS",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-06-01",
+          "label": "Ontario high school response deadline",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "accessChain": {
+        "title": "How long it takes to be able to start",
+        "steps": [
+          "Apply through OUAC",
+          "Acknowledgement email in 3–5 days, containing the 8-digit Queen's ID needed to register in Kira",
+          "Kira invitation up to 8 business days after that. Invitations go out weekly.",
+          "Nothing 8 business days after acknowledgement → email suppapp@queensu.ca"
+        ],
+        "worstCase": "About 13 days from applying to being able to start.",
+        "advice": "Add @queensu.ca and @kiratalent.com to safe senders on day one."
+      },
+      "traps": [
+        {
+          "title": "The application and the supp app are two weeks apart",
+          "body": "Applications are due 1 February. The supplementary is due 15 February. Apply on the deadline and the Kira invite can take up to 13 days, leaving two or three days to complete a timed application you cannot rehearse. Apply in November or December."
+        },
+        {
+          "title": "The word limit changed and going over is penalised",
+          "body": "It is 335 words now. It was 285 when Kira launched in the 2023-24 cycle. Guides and school handouts still circulating say 285. Confirm the live number in the platform before you write."
+        },
+        {
+          "title": "Retaking re-rolls your question",
+          "body": "If you have to retake or resubmit either component for technical reasons, you receive a new question at random. Any answer you had in mind is gone."
+        }
+      ],
+      "prep": {
+        "shape": "Rehearsal, not revision",
+        "time": "1–2 weeks",
+        "note": "You cannot pre-write. Build a story bank of 3–4 challenge stories and 3–4 team stories, beats only, not scripts. Rehearse the reflection, not the story. Practise writing and submitting 335 words in 10 minutes. Run the Kira practice module repeatedly; it's unlimited and unscored."
+      },
+      "rules": [
+        "Do not submit reference letters, CVs or portfolios. Explicitly not reviewed.",
+        "Grammarly and similar extensions are not recommended, they can break the platform.",
+        "Applying to Queen's Commerce or Nursing as well means a completely separate timed supp app for each.",
+        "Queen's does not make alternate offers. Every program you want must be listed on OUAC.",
+        "Submitting early does not get you an offer earlier. Queen's states this explicitly."
+      ],
+      "sources": {
+        "official": [
+          "Queen's BHSc Supplementary Application",
+          "Queen's Supplementary Application Rubrics",
+          "Queen's Supplementary Application FAQ",
+          "Queen's Undergraduate Admission Deadlines",
+          "Queen's Competitive Average table",
+          "OUInfo QH"
+        ],
+        "reported": [
+          "The Queen's Journal: Kira replaced the in-house platform; 285-word limit at launch",
+          "Youthfully (admissions consultancy, commercial interest)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "western-med-sci",
+      "name": "Medical Sciences → BMSc",
+      "school": "Western University",
+      "campus": "London",
+      "category": "health",
+      "gatekeeping": "twoYearsIn",
+      "ouacCodes": [
+        {
+          "code": "ESM",
+          "label": "Medical Sciences"
+        }
+      ],
+      "seats": 1000,
+      "seatsNote": "1,000 is Medical Sciences Year 1 intake. There are roughly 500 spaces in Year 3 BMSc, that gap is the whole story.",
+      "suppApp": {
+        "required": false,
+        "note": "No supplementary application. Grades only at the high school stage."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MCV4U",
+          "SBI4U",
+          "SCH4U",
+          "Two electives"
+        ],
+        "recommended": [
+          "SPH4U: Western offers first-year physics with no high school prerequisite but strongly recommends it"
+        ],
+        "total": "Six 4U/M courses, co-op excluded",
+        "notes": "MCV4U specifically. Med Sci does not accept MHF4U or MDM4U in its place, unlike Western Health Sciences."
+      },
+      "averages": [
+        {
+          "source": "Western: required course floor",
+          "type": "official",
+          "figure": "70% in required courses",
+          "note": "Western-wide floor. No program-specific cutoff published for ESM."
+        },
+        {
+          "source": "Western BMSc site",
+          "type": "official",
+          "figure": "Low 90s",
+          "note": "Stated average minimum for the ESM route."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "Mid to high 80s",
+          "note": "A competitiveness guideline, not a published minimum. Do not quote as a cutoff."
+        },
+        {
+          "source": "Uniscope",
+          "type": "community",
+          "figure": "Competitive ~92%; accepted median 95%; lowest on record 90%",
+          "note": "Self-reported student submissions, 168 of them. Same upward skew as Reddit."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-30",
+          "label": "Applications open on OUAC (late September)",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "Equal-consideration deadline for full-time undergrad",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": null,
+          "label": "Offers issued in rounds from Nov/Dec 2026 through May 2027",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "yearThreeEntry": {
+        "title": "The real admission happens in Year 3",
+        "routes": [
+          {
+            "name": "Assured admission",
+            "requirement": "Minimum 80% average on the 2000-level courses required for your intended module, no mark below 60%, by end of Fall/Winter of Med Sci 2",
+            "outcome": "Automatic seat in Year 3 BMSc"
+          },
+          {
+            "name": "Competitive pool",
+            "requirement": "Minimum 75% on the 2000-level admission-requirement courses (best 3.0 if 3.5+ required), minimum 60% in each 1000-level required course",
+            "outcome": "Considered for remaining spaces. To date every applicant meeting the conditions has been admitted."
+          }
+        ],
+        "moduleFilter": "No one is guaranteed a specific Honours Specialization. Assured-admission students get priority placement. Some modules fill entirely with them, and competitive-pool students are not considered at all for those. 75% is the floor to be eligible, not a number that gets you a module."
+      },
+      "traps": [
+        {
+          "title": "Getting into Med Sci is not getting into BMSc",
+          "body": "Western states it directly: admission to Medical Sciences is not admission to the BMSc Program. You are a Medical Sciences student in Years 1 and 2 and apply to BMSc entering Year 3. Your Grade 12 average gets you to London. Your first two years of university decide whether you actually do BMSc, and in what."
+        },
+        {
+          "title": "Western makes no automatic alternative offers",
+          "body": "If you want to be considered for both Medical Sciences and Health Sciences, list each as a separate choice on OUAC. Same for Kinesiology (EP)."
+        },
+        {
+          "title": "A late offer is not a worse offer",
+          "body": "Western reviews your application in every round from November to May, using whatever combination of Grade 11 and Grade 12 marks it has. Western states there is no disadvantage to being admitted in the final round. Grade 11 marks matter for early rounds."
+        }
+      ],
+      "sources": {
+        "official": [
+          "schulich.uwo.ca/bmsc: What is Medical Sciences, The right OUAC code, The competitive pool, Admission & Progression",
+          "uwo.ca/sci/advising",
+          "OUInfo ESM",
+          "welcome.uwo.ca"
+        ],
+        "reported": [
+          "Uniscope (self-reported student data)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "western-health-sci",
+      "name": "Bachelor of Health Sciences (BHSc)",
+      "school": "Western University",
+      "campus": "London",
+      "category": "health",
+      "gatekeeping": "hybrid",
+      "ouacCodes": [
+        {
+          "code": "EW",
+          "label": "Health Sciences"
+        }
+      ],
+      "seats": 430,
+      "suppApp": {
+        "required": false,
+        "note": "No supplementary application. Grades only."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "SBI4U",
+          "One of MHF4U / MCV4U / MDM4U"
+        ],
+        "recommended": [
+          "SCH4U: needed in practice for the Health Sciences with Biology specialization, which requires first-year chemistry"
+        ],
+        "total": "Six 4U/M courses, co-op excluded",
+        "notes": "Required courses need a minimum 70% unless otherwise noted."
+      },
+      "majors": [
+        "Health Sciences",
+        "Health Sciences with Biology",
+        "Rehabilitation Sciences"
+      ],
+      "averages": [
+        {
+          "source": "Western: required course floor",
+          "type": "official",
+          "figure": "70% in required courses",
+          "note": "Same Western-wide floor as ESM. No program-specific cutoff published."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "High 80s to low 90s",
+          "note": "Guideline, not minimum."
+        },
+        {
+          "source": "Uniscope",
+          "type": "community",
+          "figure": "Competitive ~91%; accepted median 94.5%; lowest 90%",
+          "note": "Self-reported, 107 submissions."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-30",
+          "label": "Applications open on OUAC (late September)",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "Equal-consideration deadline",
+          "critical": true,
+          "confirmed": true
+        }
+      ],
+      "traps": [
+        {
+          "title": "BHSc and BMSc are different programs in different faculties",
+          "body": "Health Sciences is Faculty of Health Sciences, direct entry to the degree, accepts any of three maths, chemistry recommended. Medical Sciences is Faculty of Science via Schulich, not direct entry, requires MCV4U specifically and chemistry. They get confused constantly."
+        },
+        {
+          "title": "Dropping Chemistry closes a module",
+          "body": "SCH4U is recommended-not-required for BHSc. But the Honours Specialization in Health Sciences with Biology needs it to satisfy the first-year chemistry requirement. Drop Chemistry because the admission page says it's optional and you've quietly closed a stream before you arrive."
+        },
+        {
+          "title": "Kinesiology is a separate code",
+          "body": "Kinesiology sits in the Faculty of Health Sciences but is its own direct-entry program, OUAC code EP, not EW. Applying to Health Sciences does not put you in consideration for Kin."
+        },
+        {
+          "title": "There is a progression requirement after second year",
+          "body": "Continuing in the Honours Specialization is not automatic. Not as severe as Med Sci's Year 3 gate, but the School of Health Studies notes meeting minimum requirements does not guarantee admission, due to limited spaces."
+        }
+      ],
+      "sources": {
+        "official": [
+          "OUInfo EW",
+          "welcome.uwo.ca",
+          "uwo.ca/fhs/shs"
+        ],
+        "reported": [
+          "Uniscope (self-reported student data)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "uoft-life-sci-stgeorge",
+      "name": "Life Sciences (including Psychology)",
+      "school": "University of Toronto",
+      "campus": "St. George",
+      "category": "health",
+      "gatekeeping": "twoYearsIn",
+      "ouacCodes": [
+        {
+          "code": "TLG",
+          "label": "Life Sciences, Faculty of Arts & Science"
+        }
+      ],
+      "codeNote": "U of T's own A&S pages don't publish the code TLG, it comes from OUInfo and the U of T program listing.",
+      "seats": null,
+      "suppApp": {
+        "required": false,
+        "note": "No supplementary application for Arts & Science Life Sciences. Only Computer Science and Rotman Commerce require one at A&S."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MCV4U: the category prerequisite"
+        ],
+        "recommended": [
+          "SBI4U",
+          "SCH4U",
+          "SPH4U: individual programs of study may require or recommend these for first-year courses"
+        ],
+        "total": "Six 4U/M courses including ENG4U",
+        "notes": "Biology and Chemistry are not required for admission but are effectively required for the degree. First-year Life Sci is biology, chemistry, math and two electives."
+      },
+      "averages": [
+        {
+          "source": "U of T Arts & Science",
+          "type": "official",
+          "figure": "Mid to high 80s recommended range; English and Calculus each mid to high 80s",
+          "note": "Explicitly recommendations. Meeting them does not guarantee admission. No hard cutoff published."
+        },
+        {
+          "source": "Uniscope",
+          "type": "community",
+          "figure": "Competitive ~90%; accepted median 94.2%; lowest 88%",
+          "note": "Self-reported, 144 submissions."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-07",
+          "label": "Apply by this date to be considered in the first admission round",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2026-12-01",
+          "label": "Complete next steps in the Join U of T portal for early rounds",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-01",
+          "label": "Faculty of Arts & Science document deadline",
+          "critical": true,
+          "confirmed": true
+        }
+      ],
+      "postSystem": {
+        "title": "You choose your actual program at the end of first year",
+        "body": "Life Sciences is an admission category, not a program of study. In first year you are not enrolled in any specific program. You apply to your subject POSt at the end of first year, on your first-year university marks.",
+        "types": [
+          {
+            "name": "Open programs",
+            "requirement": "No requirements beyond completing 4.0 credits. Enrol directly on ACORN."
+          },
+          {
+            "name": "Limited programs",
+            "requirement": "Specific courses, minimum grades, sometimes a supplementary application or essay. High-demand ones use a variable minimum grade, the cutoff is re-set every year from that year's applicant pool. There is no published number to aim at in advance."
+          }
+        ],
+        "mechanics": "Two request periods per year. You must enrol in a valid program combination in the session you pass 4.0 credits."
+      },
+      "traps": [
+        {
+          "title": "You are not applying to a program",
+          "body": "Getting into Life Sci is not getting into the program you want. That decision is a year away and runs on your first-year university marks, against a cutoff that doesn't exist until it's set."
+        },
+        {
+          "title": "The prerequisites are lighter than everyone assumes",
+          "body": "Admission requires English and Grade 12 Calculus only. No Biology, no Chemistry. But U of T's own example: for psychology you need ENG4U and calculus to be admitted, and Grade 12 biology to enrol in the psychology program at the end of first year. You can be admitted and then find you can't take the courses your intended POSt requires."
+        },
+        {
+          "title": "St. George and UTM have opposite prerequisite shapes",
+          "body": "St. George requires MCV4U and only recommends the sciences. UTM requires MHF4U plus SBI4U plus SCH4U and only recommends MCV4U. Separate OUAC codes, separate decisions. This is the one people get wrong."
+        },
+        {
+          "title": "You can switch out of your category later",
+          "body": "You may apply to programs outside your admission category at the end of first year. Life Sci is not a cage; it's the door you came in through."
+        }
+      ],
+      "rules": [
+        "You may apply to up to three programs or campuses, but only one application per program area. You cannot apply to two program areas within A&S St. George.",
+        "Applying to Life Sci at both St. George and UTM is allowed and is the standard hedge, since UTM's cutoffs run lower."
+      ],
+      "sources": {
+        "official": [
+          "artsci.utoronto.ca: Life Sciences admission category, Admission Categories, Admission Requirements",
+          "artsci.calendar.utoronto.ca: Understanding Programs and Certificates",
+          "sidneysmithcommons.artsci.utoronto.ca",
+          "future.utoronto.ca: How to Apply, Supplemental Applications, Deadlines"
+        ],
+        "reported": [
+          "Uniscope (self-reported student data)",
+          "The Varsity"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "uoft-life-sci-utm",
+      "name": "Life Sciences",
+      "school": "University of Toronto",
+      "campus": "Mississauga (UTM)",
+      "category": "health",
+      "gatekeeping": "twoYearsIn",
+      "ouacCodes": [
+        {
+          "code": "TML",
+          "label": "Life Sciences, UTM"
+        }
+      ],
+      "seats": 450,
+      "suppApp": {
+        "required": false,
+        "note": "No supplementary application."
+      },
+      "courses": {
+        "required": [
+          "ENG4U: minimum 70%",
+          "MHF4U: Advanced Functions, not Calculus",
+          "SBI4U: except Anthropology",
+          "SCH4U: except Anthropology and Biomedical Communications"
+        ],
+        "recommended": [
+          "MCV4U: recommended by most majors in the category"
+        ],
+        "total": "Six 4U/M courses including ENG4U",
+        "notes": "Opposite shape to St. George. UTM requires Advanced Functions and both sciences; St. George requires Calculus and only recommends the sciences."
+      },
+      "majors": [
+        "Biology",
+        "Biology for Health Sciences",
+        "Biotechnology",
+        "Biomedical Communications",
+        "Molecular Biology",
+        "Anthropology",
+        "Paleontology"
+      ],
+      "averages": [
+        {
+          "source": "UTM admissions",
+          "type": "official",
+          "figure": "75% overall, 70% ENG4U",
+          "note": "A real published floor. Overall average calculated as ENG4U plus the best five 4U/M courses. Some prerequisites must be at least 70%."
+        },
+        {
+          "source": "UTM",
+          "type": "official",
+          "figure": "Low to mid 80s",
+          "note": "Competitive average."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-07",
+          "label": "Apply by this date to be considered in the first admission round",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        }
+      ],
+      "postSystem": {
+        "title": "Type 1, 2 and 3 programs",
+        "body": "UTM labels every program Type 1, 2 or 3, indicating whether there are entry requirements and whether spaces are limited. Same idea as St. George's open/limited split, different vocabulary. You can only enrol in programs offered at your own campus."
+      },
+      "traps": [
+        {
+          "title": "UTM needs MHF4U, not MCV4U",
+          "body": "A student who took Calculus and dropped Advanced Functions is eligible at St. George and ineligible at UTM. The reverse is also true. Check both if you're applying to both."
+        },
+        {
+          "title": "UTM may auto-review you for an alternative program",
+          "body": "UTM may invite qualified applicants to be auto-reviewed for an alternative program if space allows, unlike Western and Queen's, which make no alternate offers at all."
+        }
+      ],
+      "sources": {
+        "official": [
+          "OUInfo TML",
+          "utm.utoronto.ca/future-students/admissions/requirements",
+          "UTM Life Sciences prerequisites",
+          "utm.calendar.utoronto.ca"
+        ],
+        "reported": []
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "waterloo-engineering",
+      "name": "Engineering (BASc)",
+      "school": "University of Waterloo",
+      "campus": "Waterloo",
+      "category": "eng",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "WWJ",
+          "label": "Computer"
+        },
+        {
+          "code": "WWF",
+          "label": "Electrical"
+        },
+        {
+          "code": "WWH",
+          "label": "Mechanical"
+        },
+        {
+          "code": "WMT",
+          "label": "Mechatronics"
+        },
+        {
+          "code": "WE",
+          "label": "Civil"
+        },
+        {
+          "code": "WEM",
+          "label": "Management"
+        }
+      ],
+      "seats": null,
+      "suppApp": {
+        "required": true,
+        "platform": "AIF in the Waterloo applicant portal; online interview on Kira Talent",
+        "format": "Two separate required pieces: the Admission Information Form (written) and an online video interview.",
+        "components": [
+          {
+            "type": "written",
+            "prompt": "AIF: 5 questions, all published in advance",
+            "limit": "150 words each, plus an unlimited-entry activities chart"
+          },
+          {
+            "type": "video",
+            "prompt": "One pre-recorded question, not published in advance",
+            "limit": "Unlimited practice sessions beforehand"
+          }
+        ],
+        "questionsPublishedInAdvance": true,
+        "questionsNote": "Waterloo publishes the complete verbatim AIF question set on its own website. No reconstruction needed. Only the interview question is unknown.",
+        "questions": [
+          "Passion or strong interest: how you got involved, how long, what you learned about yourself, how you'll apply it at Waterloo",
+          "Community involvement: a group or organization you contributed to. Did you lead? Did you influence outcomes?",
+          "Experience reflection: a time you were treated unfairly or witnessed unfairness. What you did, and whether you'd do anything differently now",
+          "Goals for Waterloo: your primary goal, your exposure to the field, who you turned to for advice about backup options",
+          "Outside the classroom: activities and interests with hours logged between 1 January and 31 December of the application year only"
+        ],
+        "rubricPublished": false,
+        "deadline": {
+          "confirmed": true,
+          "date": "2027-02-01",
+          "text": "1 February 2027, 11:59 PM ET: AIF, online interview and all supporting documents"
+        },
+        "fee": null,
+        "feeNote": "No separate fee, unlike McMaster's $50 or Rotman's $52.",
+        "weighting": {
+          "type": "partial",
+          "official": true,
+          "summary": "The interview score is added to your admission average, on top of an already-adjusted average.",
+          "formula": "adjusted high school average + interview score + AIF assessment",
+          "notPublished": [
+            "Number of interview points available",
+            "Exact numerical AIF weighting",
+            "Point breakdown per AIF question",
+            "The formula combining all three"
+          ]
+        }
+      },
+      "adjustmentFactor": {
+        "official": true,
+        "body": "Waterloo applies an adjustment factor based on how students from your high school have historically performed at Waterloo. It compares their first-year university averages against their final high school averages, over the past six or more years. Your admission average is not your admission average.",
+        "note": "Older adjustment tables circulate on third-party sites. Treat those as historical, not current."
+      },
+      "aiScoring": {
+        "official": true,
+        "body": "Waterloo states the AIF is reviewed both by trained human reviewers and by artificial intelligence. If the scores differ significantly, a second human scorer reviews the submission. Identifying information is removed before review. Waterloo says its AI system is proprietary and applicant data is not sent to third-party AI services.",
+        "contrast": "Waterloo discloses using AI to score the AIF while explicitly prohibiting applicants from using AI to write it. Waterloo reserves the right to revoke an offer if it believes the AIF was not self-written.",
+        "note": "None of Rotman, Queen's or McMaster disclose AI involvement in scoring anywhere in their public FAQs."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MHF4U",
+          "MCV4U",
+          "SCH4U",
+          "SPH4U",
+          "One additional 4U/M credit"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses",
+        "notes": "No published minimum percentage per required course, unlike Queen's Commerce's hard 80% gates."
+      },
+      "averages": [
+        {
+          "source": "Waterloo",
+          "type": "official",
+          "figure": "No published single cutoff",
+          "note": "Waterloo states applications are reviewed holistically rather than against one fixed cutoff. Conditional offers require a final admission average of 85%+ to remain valid."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "Civil and Management mid to high 80s; Computer, Mechanical and Mechatronics high 80s to low 90s; Electrical low to mid 90s",
+          "note": "By discipline."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline (all Engineering except Architecture)",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-01",
+          "label": "AIF, online interview and all documents, 11:59 PM ET",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2026-12-01",
+          "label": "Decisions begin: only a small number issued in December",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-05-15",
+          "label": "All decisions finalized by mid-May",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "traps": [
+        {
+          "title": "There is no single 'Waterloo Engineering' code",
+          "body": "The discipline you select is the OUAC code. Only one Engineering program can be your first choice. One alternate Engineering choice can be added through the AIF, but Biomedical and Software Engineering are excluded from the alternate-choice system and must be applied to directly."
+        },
+        {
+          "title": "Question 5 only counts the last 12 months",
+          "body": "The activities chart asks for hours logged between 1 January and 31 December of the application year. A four-year commitment gets counted for one year of it."
+        },
+        {
+          "title": "No early consideration round",
+          "body": "Waterloo states plainly there is only one application deadline and no early consideration. It's the only program in this set that explicitly disclaims an early-round advantage."
+        },
+        {
+          "title": "Waterloo's own FAQ contradicts itself",
+          "body": "Correct 2027 dates near the top of the admissions FAQ, then a line further down still says the AIF is due 30 January 2026. Checked 8 September 2026."
+        }
+      ],
+      "prep": {
+        "shape": "Draft and polish: the most preparable supp app in this set",
+        "time": "Weeks, at your own pace",
+        "note": "All five AIF questions are fixed and published every cycle. Draft them in a word processor first, organize Question 5 activities by hours within the calendar-year window, and focus on polish and concision. The only unknown is the interview question, and practice sessions are unlimited."
+      },
+      "sources": {
+        "official": [
+          "uwaterloo.ca Engineering admissions FAQ",
+          "uwaterloo.ca Admission Information Form page",
+          "OUInfo Waterloo Engineering codes"
+        ],
+        "reported": [
+          "Youthfully: Waterloo Engineering guides (admissions consultancy, commercial interest)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "uoft-engineering",
+      "name": "Engineering: TrackOne, Core 8 and Engineering Science",
+      "school": "University of Toronto",
+      "campus": "St. George",
+      "category": "eng",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "TEO",
+          "label": "TrackOne (undeclared)"
+        },
+        {
+          "code": "TB",
+          "label": "Chemical"
+        },
+        {
+          "code": "TV",
+          "label": "Civil"
+        },
+        {
+          "code": "TCS",
+          "label": "Computer"
+        },
+        {
+          "code": "TE",
+          "label": "Electrical"
+        },
+        {
+          "code": "TI",
+          "label": "Industrial"
+        },
+        {
+          "code": "TTM",
+          "label": "Materials"
+        },
+        {
+          "code": "TM",
+          "label": "Mechanical"
+        },
+        {
+          "code": "TG",
+          "label": "Mineral"
+        },
+        {
+          "code": "TK",
+          "label": "Engineering Science"
+        }
+      ],
+      "seats": null,
+      "suppApp": {
+        "required": true,
+        "platform": "Engineering Applicant Portal: separate from the general Join U of T portal",
+        "format": "Online Student Profile (OSP): academic and extracurricular information, program preferences, and a Personal Profile with timed written and video responses.",
+        "questionsPublishedInAdvance": false,
+        "rubricPublished": false,
+        "deadline": {
+          "confirmed": false,
+          "text": "No 2027 OSP deadline confirmed. The Engineering Applicant Portal carries the authoritative date.",
+          "estimate": "Use the central U of T dates: 7 November 2026 for early consideration, 15 January 2027 OUAC."
+        },
+        "fee": "Engineering Assessment Fee, approximately $40–43",
+        "weighting": {
+          "type": "unpublished",
+          "official": false,
+          "summary": "Not published. U of T Engineering states an application will not be considered without the profile."
+        },
+        "note": "Applicants rank at least two and up to four Engineering programs."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MCV4U",
+          "MHF4U",
+          "SCH4U",
+          "SPH4U"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses",
+        "notes": "U of T notes that particular attention is paid to the required courses."
+      },
+      "averages": [
+        {
+          "source": "U of T",
+          "type": "official",
+          "figure": "Not officially published as a cutoff",
+          "note": null
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "TrackOne low to mid 90s; Core 8 high 80s to low 90s; Computer, Electrical and Engineering Science low to mid 90s",
+          "note": null
+        },
+        {
+          "source": "Community",
+          "type": "community",
+          "figure": "Engineering Science approximately 96–97.5%",
+          "note": "Anecdotal. Not an official cutoff."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-07",
+          "label": "Apply by this date for the first admission round",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2026-12-01",
+          "label": "Complete portal next steps for early rounds",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        }
+      ],
+      "traps": [
+        {
+          "title": "TrackOne and Engineering Science are different applications",
+          "body": "TEO and TK have different OUAC codes and substantially different competitiveness. Engineering Science is meaningfully harder than the Core 8 and TrackOne."
+        },
+        {
+          "title": "Engineering uses a different portal from the rest of U of T",
+          "body": "The Engineering Applicant Portal is separate from the Join U of T portal that Rotman Commerce and Arts & Science applicants use. A student applying to both follows two distinct sets of instructions."
+        }
+      ],
+      "sources": {
+        "official": [
+          "U of T Engineering admissions",
+          "U of T Engineering Applicant Portal",
+          "future.utoronto.ca deadlines",
+          "OUInfo"
+        ],
+        "reported": [
+          "Uniscope (self-reported student data)"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "mcmaster-engineering",
+      "name": "Engineering I and iBioMed",
+      "school": "McMaster University",
+      "campus": "Hamilton",
+      "category": "eng",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "ME",
+          "label": "Engineering I"
+        },
+        {
+          "code": "MEC",
+          "label": "Engineering I co-op"
+        },
+        {
+          "code": "MEH",
+          "label": "iBioMed"
+        },
+        {
+          "code": "MEI",
+          "label": "iBioMed co-op"
+        }
+      ],
+      "seats": 155,
+      "seatsNote": "155 is the iBioMed target first-year enrolment. Engineering I is larger.",
+      "suppApp": {
+        "required": true,
+        "platform": "Kira Talent",
+        "format": "Four questions: three video responses and one written response. Takes roughly 20–30 minutes.",
+        "components": [
+          {
+            "type": "written",
+            "prompt": "One written response",
+            "limit": "No published word limit",
+            "time": "McMaster's own pages say 7 minutes in one place and 10 in another, prepare for the shorter."
+          },
+          {
+            "type": "video",
+            "prompt": "Three video responses",
+            "limit": "One take",
+            "time": "10 seconds prep + 2 minutes response each"
+          }
+        ],
+        "competencies": [
+          "Engagement",
+          "Collaboration",
+          "Innovation & Creativity",
+          "Resilience"
+        ],
+        "questionsPublishedInAdvance": false,
+        "questionsNote": "McMaster publishes practice questions, but states explicitly they are not the real questions.",
+        "rubricPublished": false,
+        "deadline": {
+          "confirmed": true,
+          "date": "2027-01-28",
+          "text": "28 January 2027, 11:59 PM ET. Recommended submission 26 November 2026."
+        },
+        "fee": "$50 CAD, paid through OUAC",
+        "invite": "Kira Talent invitation arrives within 10 business days of applying. Check junk and spam.",
+        "weighting": {
+          "type": "unpublished",
+          "official": false,
+          "summary": "No official weighting published. Used in combination with academic performance in a holistic assessment.",
+          "communityInterpretation": "AdmissionPrep describes an unofficial clustering model in which stronger supplementary performance may offset a lower average, with estimated competitive bands from roughly 90% to 96–97%. McMaster does not publish or confirm these tiers."
+        },
+        "note": "One supplementary application covers Engineering, iBioMed, Computer Science and BTech."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MCV4U",
+          "SCH4U",
+          "SPH4U"
+        ],
+        "requiredIBioMed": [
+          "ENG4U",
+          "MCV4U",
+          "SCH4U",
+          "SPH4U",
+          "SBI4U"
+        ],
+        "recommended": [
+          "MHF4U: recommended, not formally required"
+        ],
+        "total": "Six 4U/M courses",
+        "notes": "Unlike Waterloo and U of T Engineering, MHF4U is recommended rather than required."
+      },
+      "averages": [
+        {
+          "source": "McMaster iBioMed",
+          "type": "official",
+          "figure": "90% published minimum for consideration",
+          "note": "Admission is by selection. More competitive applicants sit several percentage points above."
+        },
+        {
+          "source": "McMaster Engineering I",
+          "type": "official",
+          "figure": "No single published cutoff",
+          "note": null
+        },
+        {
+          "source": "AdmissionPrep",
+          "type": "community",
+          "figure": "~90% for top-tier supplementary scores; ~96–97% for lower supplementary tiers",
+          "note": "Third-party interpretation. Not a McMaster figure."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-26",
+          "label": "Recommended supplementary submission: may be reviewed sooner",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-28",
+          "label": "Supplementary application deadline, 11:59 PM ET",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-15",
+          "label": "First round of Ontario offers (mid-March)",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-04-01",
+          "label": "iBioMed additional documents deadline",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-05-01",
+          "label": "Second round of offers (early May)",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "traps": [
+        {
+          "title": "10 seconds of video prep is the shortest in this set",
+          "body": "Each video question gives 10 seconds to prepare and 2 minutes to answer. U of T gives 2 minutes to prepare. There is almost no time to organize an answer before speaking, practise moving straight from prompt to story to speaking."
+        },
+        {
+          "title": "The practice questions are not the real questions",
+          "body": "McMaster says so explicitly. Memorizing an answer to a practice prompt fails when the real question on the same competency is phrased differently. Prepare a competency-mapped story bank, not scripts."
+        },
+        {
+          "title": "McMaster's own page contradicts itself on timing",
+          "body": "7 minutes in one section, 10 in another, for the written question. Applicants reading only the summary box get different information from those reading the FAQ. Prepare for 7."
+        },
+        {
+          "title": "Free Choice is not an admissions safety net",
+          "body": "A strong enough admission average can earn Free Choice, letting you pick your Level II discipline without competing on first-year CGPA. Exceptions include Chemical & Bioengineering and the Management and Society options. It does not work like Waterloo's alternate choice."
+        }
+      ],
+      "prep": {
+        "shape": "Story bank plus speed",
+        "time": "1–2 weeks",
+        "note": "Build at least one strong STAR story for each of the four competencies. Practise starting immediately: with 10 seconds of prep there is no time to design a structure after seeing the prompt."
+      },
+      "sources": {
+        "official": [
+          "eng.mcmaster.ca/supplementary-application",
+          "eng.mcmaster.ca IBEHS I",
+          "OUInfo McMaster Engineering"
+        ],
+        "reported": [
+          "AdmissionPrep: clustering interpretation (third-party)",
+          "Kira Talent vendor blog: McMaster staff quote, not McMaster's admissions site"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "queens-commerce",
+      "name": "Commerce (BCom)",
+      "school": "Queen's University",
+      "campus": "Kingston: Smith School of Business",
+      "category": "business",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "QC",
+          "label": "Commerce"
+        }
+      ],
+      "seats": 655,
+      "suppApp": {
+        "required": true,
+        "platform": "Kira Talent",
+        "format": "One written response, then one video response. Same shared format as Queen's Health Sciences and Nursing.",
+        "components": [
+          {
+            "type": "written",
+            "prompt": "Challenge question",
+            "limit": "335 words",
+            "time": "10 minutes to write AND submit"
+          },
+          {
+            "type": "video",
+            "prompt": "Teamwork question",
+            "limit": "One take",
+            "time": "2 min prepare + 2 min record"
+          }
+        ],
+        "questionsPublishedInAdvance": false,
+        "rubricPublished": true,
+        "rubricNote": "The published rubric is labelled 2024-25 and is shared across Commerce, Health Sciences and Nursing.",
+        "formatUnconfirmed": true,
+        "formatWarning": "Smith's own supplementary application page currently says details for 2026-27 are coming soon and that it is finalizing the format, questions AND assessment criteria. Anyone telling an applicant exactly what this year's supp app looks like is guessing. Check smith.queensu.ca before writing a word.",
+        "deadline": {
+          "confirmed": true,
+          "date": "2027-02-15",
+          "text": "15 February 2027, 11:59 PM EST. No late submissions."
+        },
+        "fee": null,
+        "weighting": {
+          "type": "unpublished",
+          "official": true,
+          "summary": "No percentage split published. Smith names two elements for admission: required courses and marks, and the mandatory Supplementary Application, and does not weight them. Queen's central answer to how important the supp app is versus grades: 'It is very important.'",
+          "note": "There is no cluster model, no percentile system, and no published tradeoff. If the site shows a GPA-vs-supp-app graphic for QC, we invented it."
+        },
+        "mismatch": "Smith says it looks for strong academic performance, aptitude for qualitative and quantitative subjects, self-awareness, and potential for leadership and teamwork. The published rubric does not score leadership, business interest, or quantitative aptitude anywhere, it scores challenge-handling, teamwork and reflection, identical to Health Sci and Nursing. Don't write a leadership résumé answer against a rubric that doesn't reward it."
+      },
+      "courses": {
+        "required": [
+          "ENG4U: minimum 80%",
+          "MCV4U: minimum 80%",
+          "One other 4U mathematics course: minimum 80%",
+          "Three additional 4U/M courses"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses. No more than two 4M courses from the same discipline.",
+        "notes": "The math-heaviest Queen's direct-entry program. Two 4U maths, both at 80%+. A student who dropped Advanced Functions after Calculus is not eligible."
+      },
+      "averages": [
+        {
+          "source": "Queen's Competitive Average table",
+          "type": "official",
+          "figure": "90+",
+          "note": "Minimum for admission consideration, as of last September. The higher and more recent Queen's number."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "87%+",
+          "note": "The outlier: same pattern as Health Sci, where OUInfo drifts from Queen's own pages."
+        },
+        {
+          "source": "Queen's-wide floor",
+          "type": "official",
+          "figure": "75% minimum for any Queen's program",
+          "note": null
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-20",
+          "label": "Recommended apply-by for Major Admission Award access",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2026-12-08",
+          "label": "Major Admission Award deadline (SOLUS)",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-01",
+          "label": "Application deadline: Commerce, Health Sci and Nursing only",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-15",
+          "label": "Supplementary application deadline, 11:59 PM EST",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-01",
+          "label": "Application deadline for every other Queen's program",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-31",
+          "label": "All documents due",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-05-21",
+          "label": "All decisions posted on SOLUS",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-06-01",
+          "label": "Ontario high school response deadline",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "traps": [
+        {
+          "title": "Two different Queen's deadlines on one OUAC form",
+          "body": "Commerce, Health Sci and Nursing are due 1 February. Every other Queen's program is due 1 March. A student applying to Commerce and Arts in the same sitting has two deadlines a month apart. People see 'February 15' everywhere, assume that's when they apply, and miss the application by two weeks."
+        },
+        {
+          "title": "The top Google result describes a system that no longer exists",
+          "body": "ScholarTree's Queen's Commerce guide still describes a Personal Statement of Experience and three submission rounds on 1 December, 1 January and 1 February. That's the pre-Kira system. It's gone: Kira replaced it in the 2023-24 cycle. A student prepping to that guide will prepare multi-round essays for a one-shot 10-minute timed platform."
+        },
+        {
+          "title": "Two 4U maths at 80%",
+          "body": "MCV4U plus one more, both at 80% or above. Not a general 'math requirement'."
+        },
+        {
+          "title": "The 2026-27 format isn't confirmed",
+          "body": "Smith is re-working format, questions and assessment criteria. The rubric Queen's publishes is explicitly labelled 2024-25."
+        }
+      ],
+      "prep": {
+        "shape": "Rehearsal, identical to Queen's Health Sci",
+        "time": "1–2 weeks",
+        "note": "Story bank of 3–4 challenge stories and 3–4 team stories, beats only. Rehearse the reflection. Timed practice at 335 words in 10 minutes. Run the Kira practice module. If applying to both Queen's Commerce and Health Sci, that's two separate timed supp apps with two sets of random questions, both due 15 February. Budget for two sittings."
+      },
+      "sources": {
+        "official": [
+          "smith.queensu.ca BCom admission process",
+          "Smith BCom Supplementary Application",
+          "Queen's Undergraduate Admission Deadlines",
+          "Queen's Supplementary Application FAQ and Rubrics",
+          "Queen's Competitive Average table",
+          "OUInfo QC"
+        ],
+        "reported": [
+          "The Queen's Journal: Kira replaced the in-house platform",
+          "Youthfully (admissions consultancy, commercial interest)",
+          "ScholarTree: cited only as evidence of stale guides; its format description is wrong"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    },
+    {
+      "id": "rotman-commerce",
+      "name": "Rotman Commerce (BCom)",
+      "school": "University of Toronto",
+      "campus": "St. George",
+      "category": "business",
+      "gatekeeping": "atTheDoor",
+      "ouacCodes": [
+        {
+          "code": "TAC",
+          "label": "Rotman Commerce"
+        }
+      ],
+      "seats": null,
+      "suppApp": {
+        "required": true,
+        "platform": "Kira Talent, through the general Join U of T portal. Not the Engineering Applicant Portal",
+        "format": "Short written and video responses. Some questions are known in advance; some are drawn at random.",
+        "known": [
+          {
+            "type": "written",
+            "prompt": "Your activities: significant out-of-class commitments from the past ~4 years. For each: what it was, how long, what you achieved.",
+            "limit": "Roughly 50–100 words per activity"
+          },
+          {
+            "type": "video",
+            "prompt": "Introduce yourself: who you are, a passion or your interest in business, and what you'd bring to the Rotman Commerce community specifically."
+          }
+        ],
+        "random": [
+          {
+            "type": "written",
+            "prompt": "Behavioural, situational, or analytical. Reported past examples: why you want a business career; whether AI is good or bad for society; a business-article analysis."
+          },
+          {
+            "type": "video",
+            "prompt": "Situational or behavioural. Reported themes: teamwork, leadership, personal growth, resilience, conflict resolution, communication.",
+            "time": "60s prepare + 60s record"
+          }
+        ],
+        "questionsPublishedInAdvance": "partial",
+        "structureNote": "Three third-party sources disagree on the exact question count (4, 5 or 6) but agree on the shape: some questions are known, some are random. Roughly half is genuinely pre-writable: nobody applying to Queen's can say that.",
+        "rubricPublished": false,
+        "rubricNote": "Rotman publishes less about how it scores than any other program in this set. No rubric, no score bands, no percentages.",
+        "deadline": {
+          "confirmed": true,
+          "date": "2027-02-01",
+          "text": "1 February 2027, 11:59 PM EST: final supplemental and documents"
+        },
+        "fee": "$52, paid with the OUAC application",
+        "weighting": {
+          "type": "unpublished",
+          "official": true,
+          "summary": "Rotman states only that the supplemental application will be considered alongside your academic record. That's the entire official statement."
+        }
+      },
+      "lookingFor": {
+        "verbatim": "Your grades are important, but so are your extracurricular activities, your capacity to learn and to lead, and your ability to express yourself.",
+        "contrast": "Mac Health Sci says to include personal experience only if it clearly connects, and that forcing it in can set you back. Queen's says the questions will not ask you to list your involvement outside the classroom. Rotman has a dedicated written question that is literally a list of your activities. This is the one program where the résumé belongs in the application."
+      },
+      "courses": {
+        "required": [
+          "ENG4U",
+          "MCV4U"
+        ],
+        "recommended": [],
+        "total": "Six 4U/M courses including ENG4U",
+        "notes": "Special attention is given to MCV4U. No published minimum marks on individual courses. Which makes it look easier than Queen's Commerce on paper, and isn't."
+      },
+      "averages": [
+        {
+          "source": "U of T Arts & Science",
+          "type": "official",
+          "figure": "Mid to high 80s recommended; English high 80s, Calculus high 80s",
+          "note": null
+        },
+        {
+          "source": "Rotman 'What We Look For'",
+          "type": "official",
+          "figure": "Top 5% of their class; minimum overall average mid-high 80s",
+          "note": null
+        },
+        {
+          "source": "Rotman Ontario applicants page",
+          "type": "official",
+          "figure": "Mid-high 80s or above across all Grade 11 and 12 U/M courses",
+          "note": "Grade 11 counts. No other program in this set says this."
+        },
+        {
+          "source": "OUInfo",
+          "type": "official",
+          "figure": "Mid to high 80s",
+          "note": null
+        },
+        {
+          "source": "Community",
+          "type": "community",
+          "figure": "Low to mid 90s",
+          "note": "Anecdotal, and higher than every official source."
+        }
+      ],
+      "timeline": [
+        {
+          "date": "2026-11-07",
+          "label": "Early consideration application deadline: strongly encouraged",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2026-12-01",
+          "label": "Early consideration supplemental deadline, 11:59 PM EST",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-01-15",
+          "label": "Final OUAC application deadline",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": "2027-02-01",
+          "label": "Final supplemental and documents deadline, 11:59 PM EST",
+          "critical": true,
+          "confirmed": true
+        },
+        {
+          "date": null,
+          "label": "Offers made in monthly rounds, February to late May 2027",
+          "critical": false,
+          "confirmed": true
+        },
+        {
+          "date": "2027-03-31",
+          "label": "Residence (StarRez) application for the housing guarantee",
+          "critical": false,
+          "confirmed": true
+        }
+      ],
+      "alternativeOffer": {
+        "available": true,
+        "body": "If you select the Rotman Commerce or Computer Science admission categories, you can select a second A&S admission category for consideration on the Join U of T portal. It does not affect eligibility for your first choice, and is evaluated after all first-choice applicants have been considered.",
+        "note": "Rotman is the only program in this set with a real built-in fallback. Queen's makes no alternate offers. Western makes no automatic alternatives. Always set a second category: Social Sciences is the natural one. It costs nothing."
+      },
+      "traps": [
+        {
+          "title": "Rotman's own pages disagree about the December deadline",
+          "body": "The Important Dates page says submitting after 1 December means they may not consider you until after the March round, then adds an asterisk saying all Ontario secondary school applicants are treated equally so long as documents arrive by the regular deadline. The Ontario High School Applicants page says late submission means April or May. Best reading for an Ontario student: the asterisk applies to you. But it's not stated cleanly anywhere. Hit 1 December: nothing is lost by being early."
+        },
+        {
+          "title": "Grade 11 counts",
+          "body": "Rotman states all Grade 11 and 12 U/M courses may be considered, and recommends an overall average of all Grade 11 and 12 courses in the mid-high 80s or above. No other program in this set says this."
+        },
+        {
+          "title": "Night school and private credits are discouraged in writing",
+          "body": "Rotman reserves the right to give preference to students whose marks are the result of a single attempt at each course, and encourages students to take courses in their day school where possible."
+        },
+        {
+          "title": "Rotman and Queen's Commerce are different programs",
+          "body": "Similar names, different schools, different OUAC codes, different deadlines, different supp app formats. Rotman also uses the general Join U of T portal while U of T Engineering applicants use a separate one."
+        }
+      ],
+      "prep": {
+        "shape": "Half preparable, half rehearsal",
+        "time": "Weeks for the known half",
+        "note": "The activities list and the intro video should be finished, timed and polished weeks in advance. 20 minutes for a 200-word written answer is real drafting time, unlike Queen's 10 minutes for 335 words. Practice sessions are unlimited: use them until the intro video is clean. Specificity about Rotman itself (streams, specializations, resources) is reported to matter in the intro video."
+      },
+      "howToApply": "OUAC → University of Toronto → Faculty of Arts & Science, St. George → then select Rotman Commerce from the program list. It is an A&S admission category, not a separate faculty application. After applying you get a U of T confirmation email with your JOINid/UTORid. Documents may take up to three weeks to appear on Join U of T. Safe-list utoronto.ca.",
+      "sources": {
+        "official": [
+          "rotmancommerce.utoronto.ca supplemental application and important dates",
+          "U of T Arts & Science Ontario requirements",
+          "future.utoronto.ca deadlines",
+          "OUInfo Rotman Commerce"
+        ],
+        "reported": [
+          "Youthfully",
+          "MYLS",
+          "GrantMe: three sources that disagree on question count but agree on structure"
+        ]
+      },
+      "verifiedOn": "2026-09-08"
+    }
+  ]
+}
