@@ -1,9 +1,24 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { ProgramCard } from "@/components/programs/program-card";
-import type { Category, GatekeepingModel, GatekeepingModels, Program } from "@/types/program";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type {
+  Category,
+  GatekeepingModel,
+  GatekeepingModels,
+  Program,
+  ProgramCategory,
+} from "@/types/program";
 
 const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
   atTheDoor: "At the door",
@@ -12,6 +27,8 @@ const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
 };
 
 const GATEKEEPING_OPTIONS = Object.keys(GATEKEEPING_LABELS) as GatekeepingModel[];
+
+const ALL = "all";
 
 export function ProgramsBrowser({
   programs,
@@ -24,9 +41,10 @@ export function ProgramsBrowser({
   categories: Category[];
   gatekeepingModels: GatekeepingModels;
 }) {
-  const [school, setSchool] = useState("");
-  const [category, setCategory] = useState("");
-  const [gatekeeping, setGatekeeping] = useState("");
+  const [school, setSchool] = useState(ALL);
+  const [category, setCategory] = useState(ALL);
+  const [gatekeeping, setGatekeeping] = useState(ALL);
+  const prefersReducedMotion = useReducedMotion();
 
   const categoryLabelById = useMemo(
     () => new Map(categories.map((c) => [c.id, c.label])),
@@ -35,79 +53,108 @@ export function ProgramsBrowser({
 
   const filtered = programs.filter(
     (program) =>
-      (school === "" || program.school === school) &&
-      (category === "" || program.category === category) &&
-      (gatekeeping === "" || program.gatekeeping === gatekeeping)
+      (school === ALL || program.school === school) &&
+      (category === ALL || program.category === category) &&
+      (gatekeeping === ALL || program.gatekeeping === gatekeeping)
   );
 
-  const hasActiveFilters = school !== "" || category !== "" || gatekeeping !== "";
+  const hasActiveFilters = school !== ALL || category !== ALL || gatekeeping !== ALL;
 
   function clearFilters() {
-    setSchool("");
-    setCategory("");
-    setGatekeeping("");
+    setSchool(ALL);
+    setCategory(ALL);
+    setGatekeeping(ALL);
   }
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <label>
-          School{" "}
-          <select value={school} onChange={(e) => setSchool(e.target.value)}>
-            <option value="">All</option>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={school} onValueChange={(value) => setSchool(value ?? ALL)}>
+          <SelectTrigger className="w-48" aria-label="School">
+            <SelectValue placeholder="School">
+              {(value: string) => (value === ALL ? "All schools" : value)}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All schools</SelectItem>
             {schools.map((s) => (
-              <option key={s} value={s}>
+              <SelectItem key={s} value={s}>
                 {s}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </label>
+          </SelectContent>
+        </Select>
 
-        <label>
-          Category{" "}
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="">All</option>
+        <Select value={category} onValueChange={(value) => setCategory(value ?? ALL)}>
+          <SelectTrigger className="w-44" aria-label="Category">
+            <SelectValue placeholder="Category">
+              {(value: string) =>
+                value === ALL
+                  ? "All categories"
+                  : (categoryLabelById.get(value as ProgramCategory) ?? value)
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All categories</SelectItem>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+              <SelectItem key={c.id} value={c.id}>
                 {c.label}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </label>
+          </SelectContent>
+        </Select>
 
-        <label>
-          Gatekeeping model{" "}
-          <select value={gatekeeping} onChange={(e) => setGatekeeping(e.target.value)}>
-            <option value="">All</option>
+        <Select value={gatekeeping} onValueChange={(value) => setGatekeeping(value ?? ALL)}>
+          <SelectTrigger className="w-48" aria-label="Gatekeeping model">
+            <SelectValue placeholder="Gatekeeping model">
+              {(value: string) =>
+                value === ALL ? "All gatekeeping models" : GATEKEEPING_LABELS[value as GatekeepingModel]
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All gatekeeping models</SelectItem>
             {GATEKEEPING_OPTIONS.map((g) => (
-              <option key={g} value={g}>
+              <SelectItem key={g} value={g}>
                 {GATEKEEPING_LABELS[g]}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </label>
+          </SelectContent>
+        </Select>
 
         {hasActiveFilters && (
-          <button type="button" onClick={clearFilters}>
+          <Button variant="secondary" size="sm" onClick={clearFilters}>
             Clear all filters
-          </button>
+          </Button>
         )}
       </div>
 
-      <p className="mb-4 text-sm text-muted-foreground">
+      <p className="mt-section-sm text-small text-muted-foreground">
         {filtered.length} program{filtered.length === 1 ? "" : "s"} match
         {hasActiveFilters ? "ing filters" : ""}
       </p>
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((program) => (
-          <ProgramCard
-            key={program.id}
-            program={program}
-            categoryLabel={categoryLabelById.get(program.category) ?? program.category}
-            gatekeepingModels={gatekeepingModels}
-          />
-        ))}
+      <ul className="mt-section-sm grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {filtered.map((program) => (
+            <motion.li
+              key={program.id}
+              layout={!prefersReducedMotion}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <ProgramCard
+                as="div"
+                program={program}
+                categoryLabel={categoryLabelById.get(program.category) ?? program.category}
+                gatekeepingModels={gatekeepingModels}
+              />
+            </motion.li>
+          ))}
+        </AnimatePresence>
       </ul>
     </>
   );

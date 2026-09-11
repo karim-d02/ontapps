@@ -1,7 +1,10 @@
+import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
+import { PageTransition } from "@/components/page-transition"
 import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 
@@ -11,6 +14,15 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
+
+export const metadata: Metadata = {
+  icons: {
+    icon: "/logos/logo.png",
+  },
+  openGraph: {
+    images: ["/logos/logo.png"],
+  },
+}
 
 export default function RootLayout({
   children,
@@ -23,9 +35,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
     >
-      <body>
+      <body className="flex min-h-svh flex-col">
         <ThemeProvider>
-          {children}
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <PageTransition>{children}</PageTransition>
+          </div>
           <SiteFooter />
         </ThemeProvider>
       </body>

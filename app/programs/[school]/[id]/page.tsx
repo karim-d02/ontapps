@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 
 import { ClusterScatterChart } from "@/components/programs/cluster-scatter-chart";
 import { GenericDetails, hasDetails } from "@/components/programs/generic-details";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Pill } from "@/components/ui/pill";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Stat } from "@/components/ui/stat";
 import {
   getAllPrograms,
   getCategoryLabel,
@@ -54,7 +57,7 @@ export default async function ProgramPage({
   const additionalDetails = buildAdditionalDetails(program);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 pb-16 sm:px-6">
+    <main className="mx-auto max-w-2xl px-4 pb-16 motion-safe:animate-fade-rise-sm sm:px-6">
       <ProgramHeader program={program} />
       <TimelineSection timeline={program.timeline} />
       {program.yearThreeEntry && (
@@ -70,7 +73,7 @@ export default async function ProgramPage({
       <TrapsSection traps={program.traps} />
       {program.prep && (
         <section className="border-b border-border py-6">
-          <h2 className="text-h3 font-semibold tracking-tight text-foreground">Prep</h2>
+          <SectionHeader level={2} title="Prep" />
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
             <div>
               <dt className="text-small text-muted-foreground">Shape</dt>
@@ -86,9 +89,7 @@ export default async function ProgramPage({
       )}
       {hasDetails(additionalDetails) && (
         <section className="border-b border-border py-6">
-          <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-            Additional details
-          </h2>
+          <SectionHeader level={2} title="Additional details" />
           <div className="mt-3">
             <GenericDetails data={additionalDetails} />
           </div>
@@ -105,36 +106,28 @@ function ProgramHeader({ program }: { program: Program }) {
 
   return (
     <header className="border-b border-border pt-6 pb-6">
-      <p className="text-small font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        {program.school} · {program.campus}
-      </p>
-      <h1 className="mt-1 text-2xl leading-tight font-semibold tracking-tight text-foreground sm:text-h2">
-        {program.name}
-      </h1>
+      <SectionHeader
+        level={1}
+        label={`${program.school} · ${program.campus}`}
+        title={program.name}
+      />
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge
-          variant="outline"
-          className="border-silver-light/60 text-foreground"
-          title={gatekeepingDescription}
-        >
-          {GATEKEEPING_LABELS[program.gatekeeping]}
-        </Badge>
+        <Pill title={gatekeepingDescription}>{GATEKEEPING_LABELS[program.gatekeeping]}</Pill>
         <span className="text-small text-muted-foreground">{categoryLabel}</span>
       </div>
       <p className="mt-1.5 text-small text-muted-foreground">{gatekeepingDescription}</p>
 
       <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-4">
         <div>
-          <dt className="text-small text-muted-foreground">Seats</dt>
-          <dd
-            className={cn(
-              "text-lg font-semibold tabular-nums",
-              program.seats === null ? "text-muted-foreground" : "text-foreground"
-            )}
-          >
-            {program.seats === null ? "Not published" : program.seats}
-          </dd>
+          {program.seats === null ? (
+            <div>
+              <Pill>Not published</Pill>
+              <p className="mt-1 text-label label-mono text-silver">Seats</p>
+            </div>
+          ) : (
+            <Stat value={program.seats} label="Seats" />
+          )}
           {program.seatsNote && (
             <p className="mt-0.5 max-w-[14rem] text-small text-muted-foreground">
               {program.seatsNote}
@@ -142,22 +135,26 @@ function ProgramHeader({ program }: { program: Program }) {
           )}
         </div>
         <div>
-          <dt className="text-small text-muted-foreground">Supplementary app</dt>
-          <dd className="text-lg font-semibold text-foreground">
-            {program.suppApp.required ? "Required" : "Not required"}
-          </dd>
+          <Stat
+            value={program.suppApp.required ? "Required" : "Not required"}
+            label="Supplementary app"
+          />
         </div>
         {program.applicants && (
           <div className="max-w-[16rem]">
-            <dt className="text-small text-muted-foreground">Applicants</dt>
-            <dd className="text-lg font-semibold text-foreground">
-              {program.applicants.figure}
-              {program.applicants.source === "community" && (
-                <span className="ml-1.5 align-middle text-small font-normal text-silver-dark">
-                  self-reported
-                </span>
-              )}
-            </dd>
+            <Stat
+              value={
+                <>
+                  {program.applicants.figure}
+                  {program.applicants.source === "community" && (
+                    <span className="ml-1.5 align-middle text-small font-normal text-muted-foreground">
+                      self-reported
+                    </span>
+                  )}
+                </>
+              }
+              label="Applicants"
+            />
             {program.applicants.note && (
               <p className="mt-0.5 text-small text-muted-foreground">{program.applicants.note}</p>
             )}
@@ -202,9 +199,7 @@ function ProgramHeader({ program }: { program: Program }) {
 function TimelineSection({ timeline }: { timeline: TimelineEntry[] }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-        Timeline &amp; deadlines
-      </h2>
+      <SectionHeader level={2} title="Timeline & deadlines" />
       <ol className="mt-5 border-l border-border pl-5">
         {timeline.map((entry, index) => (
           <li
@@ -217,15 +212,9 @@ function TimelineSection({ timeline }: { timeline: TimelineEntry[] }) {
                   {formatDate(entry.date)}
                 </span>
               ) : (
-                <span className="rounded-full border border-silver/50 px-2 py-0.5 text-small font-medium text-silver-light">
-                  Not yet published
-                </span>
+                <Pill>Not yet published</Pill>
               )}
-              {entry.critical && (
-                <span className="text-small font-semibold tracking-wide text-silver-light uppercase">
-                  Critical
-                </span>
-              )}
+              {entry.critical && <Pill>Critical</Pill>}
             </div>
             <p
               className={cn(
@@ -245,9 +234,7 @@ function TimelineSection({ timeline }: { timeline: TimelineEntry[] }) {
 function YearThreeEntrySection({ yearThreeEntry }: { yearThreeEntry: YearThreeEntry }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-        {yearThreeEntry.title}
-      </h2>
+      <SectionHeader level={2} title={yearThreeEntry.title} />
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[480px] border-collapse text-left">
           <caption className="sr-only">Routes into year three</caption>
@@ -287,7 +274,7 @@ function YearThreeEntrySection({ yearThreeEntry }: { yearThreeEntry: YearThreeEn
 function PostSystemSection({ postSystem }: { postSystem: PostSystem }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">{postSystem.title}</h2>
+      <SectionHeader level={2} title={postSystem.title} />
       <p className="mt-3 text-body text-foreground">{postSystem.body}</p>
       {postSystem.types && postSystem.types.length > 0 && (
         <div className="mt-4 overflow-x-auto">
@@ -328,9 +315,7 @@ function PostSystemSection({ postSystem }: { postSystem: PostSystem }) {
 function RulesSection({ rules }: { rules: string[] }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-        Application rules
-      </h2>
+      <SectionHeader level={2} title="Application rules" />
       <ul className="mt-3 space-y-2">
         {rules.map((rule, index) => (
           <li key={index} className="flex gap-2.5 text-body text-foreground">
@@ -348,9 +333,7 @@ function SuppAppSection({ program }: { program: Program }) {
   if (!suppApp.required) {
     return (
       <section className="border-b border-border py-6">
-        <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-          Supplementary application
-        </h2>
+        <SectionHeader level={2} title="Supplementary application" />
         <p className="mt-3 text-body font-medium text-foreground">No supplementary application.</p>
         <p className="mt-1 text-small text-muted-foreground">{suppApp.note}</p>
       </section>
@@ -365,15 +348,11 @@ function SuppAppSection({ program }: { program: Program }) {
 
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">
-        Supplementary application
-      </h2>
+      <SectionHeader level={2} title="Supplementary application" />
 
       {(suppApp.formatUnconfirmed || suppApp.formatWarning) && (
         <div className="mt-3 rounded-md border border-silver-light/50 px-3 py-2.5">
-          <p className="text-small font-semibold tracking-wide text-silver-light uppercase">
-            Format not yet confirmed
-          </p>
+          <p className="text-label label-mono text-silver-light">Format not yet confirmed</p>
           {suppApp.formatWarning && (
             <p className="mt-1 text-small text-foreground">{suppApp.formatWarning}</p>
           )}
@@ -407,9 +386,7 @@ function SuppAppSection({ program }: { program: Program }) {
 
       {questionGroups.length > 0 && (
         <div className="mt-5">
-          <h3 className="text-small font-semibold tracking-wide text-muted-foreground uppercase">
-            Questions
-          </h3>
+          <SectionHeader level={3} title="Questions" />
           <div className="mt-3 space-y-4">
             {questionGroups.map((group) => (
               <div key={group.title}>
@@ -418,14 +395,11 @@ function SuppAppSection({ program }: { program: Program }) {
                 )}
                 <ul className="space-y-2">
                   {group.items!.map((item, index) => (
-                    <li key={index} className="rounded-md border border-border/60 p-3">
+                    <Card key={index} as="li">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Badge
-                          variant="outline"
-                          className="border-silver/50 text-muted-foreground capitalize"
-                        >
+                        <Pill tone="muted" className="capitalize">
                           {item.type}
-                        </Badge>
+                        </Pill>
                         {item.limit && (
                           <span className="text-small text-muted-foreground">{item.limit}</span>
                         )}
@@ -434,7 +408,7 @@ function SuppAppSection({ program }: { program: Program }) {
                       {item.time && (
                         <p className="mt-1 text-small text-muted-foreground">{item.time}</p>
                       )}
-                    </li>
+                    </Card>
                   ))}
                 </ul>
               </div>
@@ -451,9 +425,7 @@ function SuppAppSection({ program }: { program: Program }) {
 
       {suppApp.questions && suppApp.questions.length > 0 && (
         <div className="mt-5">
-          <h3 className="text-small font-semibold tracking-wide text-muted-foreground uppercase">
-            Published questions
-          </h3>
+          <SectionHeader level={3} title="Published questions" />
           <ol className="mt-3 list-decimal space-y-2 pl-5 marker:text-muted-foreground">
             {suppApp.questions.map((question, index) => (
               <li key={index} className="text-body text-foreground">
@@ -472,26 +444,24 @@ function SuppAppSection({ program }: { program: Program }) {
           <p className="text-small text-muted-foreground">Assessed on</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {suppApp.competencies.map((competency) => (
-              <Badge key={competency} variant="secondary">
+              <Pill key={competency} tone="muted">
                 {competency}
-              </Badge>
+              </Pill>
             ))}
           </div>
         </div>
       )}
 
       <div className="mt-5 border-t border-border pt-4">
-        <h3 className="text-small font-semibold tracking-wide text-muted-foreground uppercase">
-          Deadline
-        </h3>
+        <SectionHeader level={3} title="Deadline" />
         {suppApp.deadline.confirmed && suppApp.deadline.date ? (
           <span className="mt-2 inline-block font-mono text-body font-semibold text-foreground">
             {formatDate(suppApp.deadline.date)}
           </span>
         ) : (
-          <span className="mt-2 inline-block rounded-full border border-silver/50 px-2 py-0.5 text-small font-medium text-silver-light">
-            Not yet published
-          </span>
+          <div className="mt-2">
+            <Pill>Not yet published</Pill>
+          </div>
         )}
         <p className="mt-1 text-small text-muted-foreground">{suppApp.deadline.text}</p>
         {suppApp.deadline.estimate && (
@@ -505,13 +475,8 @@ function SuppAppSection({ program }: { program: Program }) {
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
         <div>
           <dt className="text-small text-muted-foreground">Fee</dt>
-          <dd
-            className={cn(
-              "text-body font-medium",
-              suppApp.fee === null ? "text-muted-foreground" : "text-foreground"
-            )}
-          >
-            {suppApp.fee === null ? "Not published" : suppApp.fee}
+          <dd className="mt-0.5 text-body font-medium text-foreground">
+            {suppApp.fee === null ? <Pill>Not published</Pill> : suppApp.fee}
           </dd>
           {suppApp.feeNote && (
             <p className="mt-0.5 text-small text-muted-foreground">{suppApp.feeNote}</p>
@@ -547,17 +512,13 @@ function SuppAppSection({ program }: { program: Program }) {
 
       {suppApp.mismatch && (
         <div className="mt-5 rounded-md border border-silver-light/50 px-3 py-2.5">
-          <p className="text-small font-semibold tracking-wide text-silver-light uppercase">
-            Mismatch
-          </p>
+          <p className="text-label label-mono text-silver-light">Mismatch</p>
           <p className="mt-1 text-body text-foreground">{suppApp.mismatch}</p>
         </div>
       )}
 
       <div className="mt-5 border-t border-border pt-4">
-        <h3 className="text-small font-semibold tracking-wide text-muted-foreground uppercase">
-          Weighting
-        </h3>
+        <SectionHeader level={3} title="Weighting" />
         <p className="mt-2 text-body text-foreground">{suppApp.weighting.summary}</p>
         {suppApp.weighting.formula && (
           <p className="mt-2 rounded-md border border-border/60 px-2.5 py-1.5 font-mono text-small text-foreground">
@@ -578,7 +539,7 @@ function SuppAppSection({ program }: { program: Program }) {
         )}
         {suppApp.weighting.communityInterpretation && (
           <p className="mt-2 text-small text-muted-foreground">
-            <span className="font-medium text-silver-dark">
+            <span className="font-medium text-muted-foreground">
               Community interpretation, unofficial:{" "}
             </span>
             {suppApp.weighting.communityInterpretation}
@@ -587,9 +548,9 @@ function SuppAppSection({ program }: { program: Program }) {
         {suppApp.weighting.official ? (
           <p className="mt-2 text-small text-muted-foreground">Officially published.</p>
         ) : (
-          <span className="mt-2 inline-block rounded-full border border-silver/50 px-2 py-0.5 text-small font-medium text-silver-light">
-            Not officially published
-          </span>
+          <div className="mt-2">
+            <Pill>Not officially published</Pill>
+          </div>
         )}
         {suppApp.weighting.clusters && suppApp.weighting.clusters.length > 0 && (
           <>
@@ -605,14 +566,12 @@ function SuppAppSection({ program }: { program: Program }) {
 function RubricDetail({ rubric }: { rubric: SuppAppRubric }) {
   return (
     <div className="mt-5 border-t border-border pt-4">
-      <h3 className="text-small font-semibold tracking-wide text-muted-foreground uppercase">
-        Rubric
-      </h3>
+      <SectionHeader level={3} title="Rubric" />
       <div className="mt-2 flex flex-wrap gap-1.5">
         {rubric.bands.map((band) => (
-          <Badge key={band} variant="outline" className="border-border text-muted-foreground">
+          <Pill key={band} tone="muted">
             {band}
-          </Badge>
+          </Pill>
         ))}
       </div>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -683,11 +642,7 @@ function WeightingClusters({ clusters }: { clusters: SuppAppWeightingCluster[] }
                   )}
                 </td>
                 <td className="py-2 text-small text-foreground">
-                  {cluster.count === null ? (
-                    <span className="text-muted-foreground">Not published</span>
-                  ) : (
-                    cluster.count
-                  )}
+                  {cluster.count === null ? <Pill>Not published</Pill> : cluster.count}
                 </td>
               </tr>
             ))}
@@ -700,14 +655,10 @@ function WeightingClusters({ clusters }: { clusters: SuppAppWeightingCluster[] }
 
 function CourseChip({ course, muted }: { course: string; muted?: boolean }) {
   return (
-    <li
-      className={cn(
-        "rounded-md border px-2.5 py-1 text-small",
-        course.length <= 10 && "font-mono",
-        muted ? "border-border/60 text-muted-foreground" : "border-border text-foreground"
-      )}
-    >
-      {course}
+    <li>
+      <Pill tone={muted ? "muted" : "default"} className="normal-case">
+        {course}
+      </Pill>
     </li>
   );
 }
@@ -715,7 +666,7 @@ function CourseChip({ course, muted }: { course: string; muted?: boolean }) {
 function CoursesSection({ courses }: { courses: Courses }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">Required courses</h2>
+      <SectionHeader level={2} title="Required courses" />
       <p className="mt-2 text-small text-muted-foreground">{courses.total}</p>
       {courses.required.length > 0 && (
         <div className="mt-4">
@@ -748,15 +699,12 @@ function AveragesSection({ averages }: { averages: AverageEntry[] }) {
 
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">Averages</h2>
+      <SectionHeader level={2} title="Averages" />
       {official.length > 0 && (
         <ul className="mt-4 space-y-4">
           {official.map((average, index) => (
             <li key={index}>
-              <p className="text-small text-muted-foreground">{average.source}</p>
-              <p className="text-xl font-semibold tracking-tight text-foreground">
-                {average.figure}
-              </p>
+              <Stat value={average.figure} label={average.source} size="md" />
               {average.note && (
                 <p className="mt-0.5 text-small text-muted-foreground">{average.note}</p>
               )}
@@ -766,16 +714,14 @@ function AveragesSection({ averages }: { averages: AverageEntry[] }) {
       )}
       {community.length > 0 && (
         <div className="mt-5 border-t border-border/60 pt-4">
-          <p className="text-small font-medium tracking-wide text-silver-dark uppercase">
-            Community-reported
-          </p>
+          <p className="text-label label-mono text-muted-foreground">Community-reported</p>
           <ul className="mt-2 space-y-3">
             {community.map((average, index) => (
               <li key={index}>
                 <p className="text-small text-muted-foreground">
                   <span className="text-foreground">{average.source}:</span> {average.figure}
                 </p>
-                <p className="mt-0.5 text-small text-silver-dark">
+                <p className="mt-0.5 text-small text-muted-foreground">
                   {average.note ?? "Self-reported, skews high."}
                 </p>
               </li>
@@ -790,13 +736,13 @@ function AveragesSection({ averages }: { averages: AverageEntry[] }) {
 function TrapsSection({ traps }: { traps: Trap[] }) {
   return (
     <section className="border-b border-border py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">Traps</h2>
+      <SectionHeader level={2} title="Traps" />
       <ul className="mt-4 space-y-4">
         {traps.map((trap, index) => (
-          <li key={index} className="rounded-lg border border-silver-light/40 p-4">
+          <Card key={index} as="li">
             <p className="text-body font-semibold text-foreground">{trap.title}</p>
             <p className="mt-1.5 text-body text-muted-foreground">{trap.body}</p>
-          </li>
+          </Card>
         ))}
       </ul>
     </section>
@@ -806,7 +752,7 @@ function TrapsSection({ traps }: { traps: Trap[] }) {
 function SourcesSection({ sources, verifiedOn }: { sources: Sources; verifiedOn: string }) {
   return (
     <section className="py-6">
-      <h2 className="text-h3 font-semibold tracking-tight text-foreground">Sources</h2>
+      <SectionHeader level={2} title="Sources" />
       {sources.official.length > 0 && (
         <div className="mt-3">
           <p className="text-small font-medium text-muted-foreground">Official</p>
@@ -831,7 +777,7 @@ function SourcesSection({ sources, verifiedOn }: { sources: Sources; verifiedOn:
           </ul>
         </div>
       )}
-      <p className="mt-4 text-small text-silver-dark">Verified on {verifiedOn}</p>
+      <p className="mt-4 text-small text-muted-foreground">Verified on {verifiedOn}</p>
     </section>
   );
 }

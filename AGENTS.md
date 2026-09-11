@@ -126,8 +126,12 @@ before building it.
 - Never lock or hijack scrolling. No scroll-jacking, no forced reveals, no
   blocking the user from reaching content.
 - Respect `prefers-reduced-motion` everywhere.
-- Entrance animations are 200ms or less. Nothing animates in a way that delays
-  reading.
+- Interaction motion — hover, filter changes, route transitions — is 200ms or
+  less. Nothing animates in a way that delays reading.
+- Page-load entrance animations (content settling in on mount) are a deliberate
+  exception at up to 400ms: a "breathe in" needs the duration to read as
+  intentional rather than sluggish. The 200ms cap still applies to every
+  *interaction*; it's only the initial-load settle-in that gets more room.
 - Bklit charts animate themselves. Never wrap one in Motion.
 - Real semantic HTML, keyboard-navigable, sufficient contrast against black.
 

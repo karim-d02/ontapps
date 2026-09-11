@@ -3,6 +3,7 @@
 // are dropped entirely, booleans become Yes/No, arrays and nested objects
 // recurse. Field labels are derived from camelCase keys.
 
+import { Pill } from "@/components/ui/pill";
 import { cn } from "@/lib/utils";
 
 function labelFromKey(key: string): string {
@@ -23,7 +24,7 @@ function isEmptyValue(value: unknown): boolean {
 
 function DetailValueView({ value, depth = 0 }: { value: unknown; depth?: number }) {
   if (value === null) {
-    return <span className="text-muted-foreground">Not published</span>;
+    return <Pill>Not published</Pill>;
   }
   if (typeof value === "boolean") {
     return <span>{value ? "Yes" : "No"}</span>;

@@ -1,4 +1,5 @@
 import { ProgramsBrowser } from "@/components/programs/programs-browser";
+import { SectionHeader } from "@/components/ui/section-header";
 import {
   getAllPrograms,
   getCategories,
@@ -13,8 +14,8 @@ export default function ProgramsIndexPage() {
   const gatekeepingModels = getGatekeepingModels();
 
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <h1>Programs</h1>
+    <main className="mx-auto max-w-[1800px] p-6 motion-safe:animate-fade-rise-sm lg:p-10">
+      <SectionHeader level={1} title="Programs" className="mb-section-md" />
       <ProgramsBrowser
         programs={programs}
         schools={schools}

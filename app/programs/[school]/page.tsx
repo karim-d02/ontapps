@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SectionHeader } from "@/components/ui/section-header";
 import {
   getProgramsBySchoolSlug,
   getSchoolBySlug,
@@ -26,8 +27,8 @@ export default async function SchoolProgramsPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1>{school}</h1>
+    <main className="mx-auto max-w-2xl p-6 motion-safe:animate-fade-rise-sm">
+      <SectionHeader level={1} title={school} className="mb-section-md" />
       <ul>
         {programs.map((program) => (
           <li key={program.id}>
