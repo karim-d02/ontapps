@@ -50,7 +50,7 @@ function DetailValueView({ value, depth = 0 }: { value: unknown; depth?: number 
     );
     if (entries.length === 0) return null;
     return (
-      <dl className={cn("space-y-2.5", depth > 0 && "mt-1.5 border-l border-border/60 pl-3")}>
+      <dl className={cn("space-y-2.5", depth > 0 && "mt-1.5 border-l border-border pl-3")}>
         {entries.map(([key, v]) => (
           <div key={key}>
             <dt className="text-small text-muted-foreground">{labelFromKey(key)}</dt>

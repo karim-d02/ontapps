@@ -5,37 +5,62 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    /* These MUST map to differently-named variables than the ones they define.
+       This block emits into :root, so `--font-mono: var(--font-mono)` was a
+       self-reference — a CSS cycle, invalid at computed-value time — and every
+       `font-mono` on the site silently fell back to the system monospace. The
+       next/font bindings are now --font-geist-sans / --font-geist-mono (see
+       app/layout.tsx) so there's nothing to cycle against. */
+    --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
     --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-    --font-mono: var(--font-mono);
 
-    /* Type scale: display/h1/h2/h3/body/small/label — generates text-display,
-       text-h1, etc. Each carries its own size, weight, line-height, and
-       letter-spacing (Tailwind v4's --text-*--line-height / --letter-spacing /
-       --font-weight companion keys), scaling via clamp() between mobile and
-       desktop. Display/h1 are meant to be paired with the .text-metallic
-       utility + uppercase (baked into SectionHeader level 1); label is meant
-       to be paired with .label-mono (baked into SectionHeader's label slot
-       and Stat's label). */
-    --text-display: clamp(2.75rem, 2rem + 3.2vw, 4.75rem);
-    --text-display--line-height: 1.05;
-    --text-display--letter-spacing: -0.03em;
+    /* TYPE SCALE — display / h1 / h2 / h3 / metric / body / small / label.
+       Generates text-display, text-h1, … Each step carries its own size,
+       weight, line-height and tracking (Tailwind v4's --text-*--line-height /
+       --letter-spacing / --font-weight companion keys) and scales via clamp()
+       between phone and desktop.
+
+       Two voices, and they never mix: `metric` is the mono voice for a single
+       headline figure and pairs with .data; everything else is the grotesque
+       voice for prose. Display and h1 pair with .text-metallic + uppercase
+       (baked into SectionHeader level 1); `label` pairs with .label-mono
+       (baked into SectionHeader's label slot and Stat's label).
+
+       Optical tracking: the bigger the type, the more negative the tracking.
+       Letterforms correctly spaced at 16px read loose at 104px. */
+    --text-display: clamp(3.25rem, 2.1rem + 4.9vw, 6.5rem);
+    --text-display--line-height: 0.95;
+    --text-display--letter-spacing: -0.04em;
     --text-display--font-weight: 700;
 
-    --text-h1: clamp(2rem, 1.6rem + 1.8vw, 2.75rem);
-    --text-h1--line-height: 1.1;
-    --text-h1--letter-spacing: -0.025em;
+    --text-h1: clamp(2.25rem, 1.7rem + 2.35vw, 3.5rem);
+    --text-h1--line-height: 1.05;
+    --text-h1--letter-spacing: -0.03em;
     --text-h1--font-weight: 700;
 
-    --text-h2: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+    /* h2 sits a genuine step below h1 (30px vs 56px at desktop) instead of the
+       old 28-vs-44 squeeze, where the two read as the same voice. */
+    --text-h2: clamp(1.5rem, 1.35rem + 0.64vw, 1.875rem);
     --text-h2--line-height: 1.2;
-    --text-h2--letter-spacing: -0.01em;
+    --text-h2--letter-spacing: -0.02em;
     --text-h2--font-weight: 600;
 
-    --text-h3: clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem);
-    --text-h3--line-height: 1.4;
-    --text-h3--letter-spacing: 0.02em;
+    /* h3 is a real subsection heading now. It used to be 13px uppercase — a
+       label wearing a heading's tag, which is why "Questions" and "Deadline"
+       on a program page read as captions rather than as structure. The mono
+       uppercase eyebrow role it vacated lives on in .label-mono / --text-label. */
+    --text-h3: clamp(1.0625rem, 1.02rem + 0.2vw, 1.1875rem);
+    --text-h3--line-height: 1.35;
+    --text-h3--letter-spacing: -0.01em;
     --text-h3--font-weight: 600;
+
+    /* The mono display size — for a single headline figure (days remaining, a
+       deadline date, a count). Paired with .data, never with prose. */
+    --text-metric: clamp(2.25rem, 1.6rem + 2.8vw, 4rem);
+    --text-metric--line-height: 1;
+    --text-metric--letter-spacing: -0.03em;
+    --text-metric--font-weight: 600;
 
     --text-body: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
     --text-body--line-height: 1.65;
@@ -108,6 +133,16 @@
     --color-silver-light: var(--silver-light);
     --color-silver: var(--silver);
     --color-silver-dark: var(--silver-dark);
+
+    /* Elevation ladder — see the :root block for the reasoning. Exposed here so
+       `bg-surface-page` / `bg-surface-raised` / `bg-surface-overlay` exist as
+       utilities and nothing has to reach for an arbitrary value. */
+    --color-surface-page: var(--surface-page);
+    --color-surface-raised: var(--surface-raised);
+    --color-surface-overlay: var(--surface-overlay);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-edge-highlight: var(--edge-highlight);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -139,38 +174,76 @@
 }
 
 :root {
-    /* Raw palette — pure black/white plus a three-step silver ramp. Silver is an
+    /* Raw palette — black/white plus a three-step silver ramp. Silver is an
        accent (borders, dividers, focus, muted text), never used as a fill/surface. */
     --color-black: oklch(0 0 0);
     --color-white: oklch(1 0 0);
-    --silver-light: oklch(0.82 0 0); /* highlights: focus rings, hover states, active accents */
-    --silver: oklch(0.6 0 0); /* borders, dividers, resting-state accents */
-    --silver-dark: oklch(0.42 0 0); /* muted/secondary text */
+    --silver-light: oklch(0.86 0 0); /* highlights: focus rings, hover states, active accents */
+    --silver: oklch(0.72 0 0); /* secondary text — AA-safe on every surface below */
+    --silver-dark: oklch(0.52 0 0); /* non-text only: inactive markers, rules, dot leaders */
 
-    /* Elevated surface, one step off the page background — for cards/popovers
-       that need to read as "above" the page without introducing a fill color. */
-    --surface-raised: oklch(0.16 0 0);
+    /* ELEVATION LADDER
+       The page base is #121212, not near-black. Bright text on pure black
+       halates, and with nothing below it there is nowhere for a raised surface
+       to go — every card reads as grey rather than as depth. Three steps,
+       each ~0.043 in oklch L: perceptible side by side, silent otherwise.
+         page    — the flat base, nothing sits below it
+         raised  — cards; one step up, lit from above by --edge-highlight
+         overlay — dropdowns, drawers, command palette; two steps up, frosted */
+    --surface-page: oklch(0.182 0 0); /* #121212 */
+    --surface-raised: oklch(0.225 0 0);
+    --surface-overlay: oklch(0.268 0 0);
+    /* Floating surfaces are translucent over the blur; the solid tokens above
+       are the @supports / low-end-device fallback. */
+    --surface-overlay-translucent: oklch(0.268 0 0 / 0.82);
+    --surface-page-translucent: oklch(0.182 0 0 / 0.72);
+
+    /* Lines are white at low alpha, so a hairline is always exactly one step
+       above whatever surface it sits on rather than a flat grey that goes
+       muddy on raised surfaces and glaring on the page. */
+    --line: oklch(1 0 0 / 0.1);
+    --line-strong: oklch(1 0 0 / 0.22);
+    /* The 1px top edge on a card — a single light source, from above. */
+    --edge-highlight: oklch(1 0 0 / 0.16);
+
+    /* One source of truth for the header height: the sticky header, its scroll
+       sentinel, the mobile drawer's top offset and anchor scroll-margin all
+       have to agree, and the height must never animate. */
+    --nav-height: 64px;
+
+    /* LAYOUT SYSTEM
+       One shell, one gutter, one vertical rhythm. Every page uses these; no
+       page picks its own max-width. Every value is a multiple of 4px.
+
+       --container-shell is the outer frame (1400px). --measure is the reading
+       width that lives *inside* it: a wide shell is for tables, card grids and
+       charts, never for paragraphs, which stay at ~68 characters regardless of
+       how much room the screen has. */
+    --container-shell: 87.5rem; /* 1400px */
+    --measure: 68ch;
+    --shell-pad: 1rem; /* 16 */
+    --gutter: 1rem; /* 16 */
+    --rhythm-section: 3.5rem; /* 56 — the single gap between page sections */
 
     --card: var(--surface-raised);
     --card-foreground: var(--color-white);
-    --popover: var(--surface-raised);
+    --popover: var(--surface-overlay);
     --popover-foreground: var(--color-white);
     --primary: var(--color-white);
     --primary-foreground: var(--color-black);
     --secondary: var(--surface-raised);
     --secondary-foreground: var(--color-white);
     --muted: var(--surface-raised);
-    /* Raised from --silver-dark (oklch 0.42) to --silver (oklch 0.6): 0.42
-       reads ~2.4:1 against both the page background and card surface, well
-       under WCAG AA's 4.5:1 for body text. 0.6 clears ~4.9:1 against the
-       card and ~5.2:1 against the page, while staying a full step below
-       --foreground (white) so secondary text still reads as secondary. */
+    /* --silver is oklch 0.72: 7.6:1 on the page, 6.9:1 on a card, 6.0:1 on an
+       overlay — clear of WCAG AA's 4.5:1 on every surface in the ladder, while
+       staying a full step below --foreground (white) so secondary text still
+       reads as secondary. The old value (0.42) was ~2.4:1 and unreadable. */
     --muted-foreground: var(--silver);
     --accent: var(--surface-raised);
     --accent-foreground: var(--color-white);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.6 0 0 / 25%);
-    --input: oklch(0.6 0 0 / 25%);
+    --border: var(--line);
+    --input: var(--line-strong);
     --ring: var(--silver-light);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -186,89 +259,83 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    --chart-background: oklch(0.145 0 0);
-    --chart-foreground: oklch(0.45 0 0);
-    --chart-foreground-muted: oklch(0.65 0.01 260);
+    --chart-background: var(--surface-page);
+    --chart-foreground: oklch(0.55 0 0);
+    --chart-foreground-muted: oklch(0.65 0 0);
     --chart-line-primary: var(--chart-1);
     --chart-line-secondary: var(--chart-2);
-    --chart-crosshair: oklch(0.45 0 0);
-    --chart-grid: oklch(0.25 0 0);
+    --chart-crosshair: oklch(0.55 0 0);
+    --chart-grid: oklch(1 0 0 / 0.08);
     --chart-brush-border: var(--chart-grid);
-    --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
+    --chart-tooltip-background: var(--surface-overlay-translucent);
     --chart-tooltip-foreground: oklch(0.985 0 0);
-    --chart-tooltip-muted: oklch(0.65 0.01 260);
-    --chart-marker-background: oklch(0.25 0.01 260);
-    --chart-marker-border: oklch(0.4 0.01 260);
+    --chart-tooltip-muted: var(--silver);
+    --chart-marker-background: var(--surface-overlay);
+    --chart-marker-border: oklch(1 0 0 / 0.28);
     --chart-marker-foreground: oklch(0.9 0 0);
-    --chart-label: oklch(0.75 0.01 260);
-    --chart-scale-01: oklch(0.28 0.03 270);
-    --chart-scale-02: oklch(0.38 0.04 270);
-    --chart-scale-03: oklch(0.48 0.05 270);
-    --chart-scale-04: oklch(0.58 0.06 270);
-    --chart-scale-05: oklch(0.68 0.07 270);
-    --chart-scale-pattern-color: oklch(0.145 0 0);
-    --background: oklch(0.09 0 0);
+    --chart-label: var(--silver);
+    /* Neutralised from hue 270: these shipped purple on a site whose entire
+       palette is achromatic, which reads as an accident rather than a choice.
+       Now a five-step silver ramp with even perceptual spacing. */
+    --chart-scale-01: oklch(0.3 0 0);
+    --chart-scale-02: oklch(0.42 0 0);
+    --chart-scale-03: oklch(0.54 0 0);
+    --chart-scale-04: oklch(0.66 0 0);
+    --chart-scale-05: oklch(0.78 0 0);
+    --chart-scale-pattern-color: var(--surface-page);
+    --background: var(--surface-page);
     --foreground: var(--color-white);
+
+    /* The site is dark-only (see the `color-scheme` declaration in @layer base
+       and the note in the header). The `.dark` class is kept as an alias of
+       :root so any shadcn/registry component that scopes styles to `.dark *`
+       still resolves, but there is no second palette to drift out of sync. */
+    color-scheme: dark;
 }
 
 .dark {
-    --background: oklch(0.09 0 0);
+    --background: var(--surface-page);
     --foreground: var(--color-white);
-    --card: var(--surface-raised);
-    --card-foreground: var(--color-white);
-    --popover: var(--surface-raised);
-    --popover-foreground: var(--color-white);
-    --primary: var(--color-white);
-    --primary-foreground: var(--color-black);
-    --secondary: var(--surface-raised);
-    --secondary-foreground: var(--color-white);
-    --muted: var(--surface-raised);
-    /* Raised from --silver-dark (oklch 0.42) to --silver (oklch 0.6): 0.42
-       reads ~2.4:1 against both the page background and card surface, well
-       under WCAG AA's 4.5:1 for body text. 0.6 clears ~4.9:1 against the
-       card and ~5.2:1 against the page, while staying a full step below
-       --foreground (white) so secondary text still reads as secondary. */
-    --muted-foreground: var(--silver);
-    --accent: var(--surface-raised);
-    --accent-foreground: var(--color-white);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(0.6 0 0 / 25%);
-    --input: oklch(0.6 0 0 / 25%);
-    --ring: var(--silver-light);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-    --chart-background: oklch(0.145 0 0);
-    --chart-foreground: oklch(0.45 0 0);
-    --chart-foreground-muted: oklch(0.65 0.01 260);
-    --chart-crosshair: oklch(0.45 0 0);
-    --chart-grid: oklch(0.25 0 0);
-    --chart-brush-border: var(--chart-grid);
-    --chart-marker-background: oklch(0.25 0.01 260);
-    --chart-marker-border: oklch(0.4 0.01 260);
-    --chart-marker-foreground: oklch(0.9 0 0);
-    --chart-label: oklch(0.75 0.01 260);
-    --chart-scale-01: oklch(0.28 0.03 270);
-    --chart-scale-02: oklch(0.38 0.04 270);
-    --chart-scale-03: oklch(0.48 0.05 270);
-    --chart-scale-04: oklch(0.58 0.06 270);
-    --chart-scale-05: oklch(0.68 0.07 270);
-    --chart-scale-pattern-color: oklch(0.145 0 0);
+}
+
+/* Breakpoints are declared once, here, rather than re-derived per component:
+   375 phone (the primary case), 768 tablet, 1280 desktop, 1920 wide. These sit
+   after every :root block so nothing later can silently undo them. */
+@media (width >= 48rem) {
+    :root {
+        --nav-height: 72px;
+        --shell-pad: 1.5rem; /* 24 */
+        --gutter: 1.5rem; /* 24 */
+        --rhythm-section: 5rem; /* 80 */
+    }
+}
+
+@media (width >= 80rem) {
+    :root {
+        --shell-pad: 2rem; /* 32 */
+        --rhythm-section: 5.5rem; /* 88 */
+    }
+}
+
+@media (width >= 120rem) {
+    :root {
+        --shell-pad: 3rem; /* 48 */
+    }
 }
 
 @keyframes marquee {
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 
@@ -284,20 +351,238 @@
 }
 
 @layer utilities {
+  /* ── LAYOUT ───────────────────────────────────────────────────────────── */
+
+  /* The shell. Every page uses it; no page sets its own max-width. */
+  .shell {
+    width: 100%;
+    max-width: var(--container-shell);
+    margin-inline: auto;
+    padding-inline: var(--shell-pad);
+  }
+
+  /* The 12-column grid everything aligns to — nav, hero, cards, section
+     headers, tables. On a status board a misalignment is the loudest possible
+     error, so nothing is positioned by eye. */
+  .grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+  }
+
+  /* Reading width, which lives inside the shell rather than replacing it. A
+     wide shell is for tables, card grids and charts — prose stays at ~68
+     characters no matter how much room the screen has. */
+  .measure {
+    max-width: var(--measure);
+  }
+
+  /* The single vertical rhythm between page sections, so the gap between
+     sections is identical on every page rather than re-guessed per page. */
+  .stack-sections > * + * {
+    margin-top: var(--rhythm-section);
+  }
+
+  /* ── DATA ─────────────────────────────────────────────────────────────── */
+
+  /* Every value in the interface — dates, OUAC codes, averages, counts, days
+     remaining — carries this. Mono against a grotesque is the fastest
+     hierarchy signal available: the reader learns within seconds that mono
+     means "this is a fact". tabular-nums is the half nobody remembers and the
+     one that matters most — without it a 1 is narrower than a 0 and every
+     column of figures wobbles. */
+  .data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Scroll reveal. Only opacity and transform animate. 400ms is the entrance
+     allowance — interactions stay under 200ms. */
+  .reveal {
+    transition:
+      opacity 400ms cubic-bezier(0.16, 1, 0.3, 1),
+      translate 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal[data-reveal="hidden"] {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .reveal[data-reveal="hidden"] {
+      opacity: 1;
+      translate: none;
+      transition: none;
+    }
+  }
+
+  /* Reading-progress bar, driven by the scroll position itself rather than by
+     a JS listener. Hidden entirely where scroll-driven animations aren't
+     supported — a bar stuck at zero is worse than no bar. */
+  .scroll-progress {
+    display: none;
+    transform: scaleX(0);
+  }
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress {
+      display: block;
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+
   /* Metallic silver gradient for display/h1 headlines — pair with `uppercase`.
      Baked into SectionHeader's level-1 rendering; don't hand-mix with other
      text-color utilities in the same className list (see design-layer plan). */
   .text-metallic {
+    /* The darkest stop is --silver (0.72), not --silver-dark (0.52): at display
+       size the old ramp fell to 3.4:1 and the tail of the headline visibly
+       faded out, which reads as a rendering fault rather than as metal. This
+       keeps the sheen and holds every part of the word above 7:1. */
     background-image: linear-gradient(
       100deg,
       var(--silver-light) 0%,
-      var(--color-white) 22%,
-      var(--silver) 58%,
-      var(--silver-dark) 100%
+      var(--color-white) 24%,
+      var(--silver-light) 62%,
+      var(--silver) 100%
     );
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
+  }
+
+  /* CARD MATERIAL — a 1px lighter line along the top edge only, as though the
+     surface were lit from above. Not a border (which would ring the whole
+     card and flatten it) and not a gradient fill (which reads as decoration).
+     The line fades out before the rounded corners so it doesn't overhang them,
+     which is why it's a gradient rather than a flat 1px bar. */
+  .surface-lit {
+    position: relative;
+  }
+  .surface-lit::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--edge-highlight) 14%,
+      var(--edge-highlight) 86%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  /* POINTER LIGHT — a soft highlight that tracks the cursor across a card.
+     Position comes from --mx/--my, written once per frame by
+     components/pointer-light.tsx. Pointer-only: on touch there is no cursor to
+     follow and :hover sticks after a tap. */
+  .card-glow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+    background: radial-gradient(
+      16rem circle at var(--mx, 50%) var(--my, 50%),
+      oklch(1 0 0 / 0.07),
+      transparent 60%
+    );
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-glow:hover::after {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-glow::after {
+      transition: none;
+    }
+  }
+
+  /* Link underline that grows from the left on hover. Applied to prose links
+     rather than to every anchor, so navigation and cards keep their own
+     treatments. */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -2px;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 150ms ease-out;
+  }
+  .link-underline:hover::after,
+  .link-underline:focus-visible::after {
+    transform: scaleX(1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .link-underline::after {
+      transition: none;
+    }
+  }
+
+  /* FLOATING SURFACES — dropdowns, drawers, the sticky header. Frosted glass:
+     translucent + backdrop-blur, two steps up the ladder. Never on cards;
+     glassmorphism turns to mush over a dark page.
+
+     Two escape hatches, because backdrop-filter is a real cost on mid-range
+     Android: @supports gives browsers without it the solid surface, and
+     [data-lowfx] (set at runtime from deviceMemory/hardwareConcurrency, see
+     components/low-fx-flag.tsx) drops the blur on devices that have it but
+     shouldn't pay for it. Both land on the same opaque token, so the only
+     thing lost is the translucency. */
+  .surface-frosted {
+    background-color: var(--surface-overlay);
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .surface-frosted {
+      background-color: var(--surface-overlay-translucent);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      backdrop-filter: blur(16px) saturate(1.4);
+    }
+  }
+  .surface-frosted-page {
+    background-color: var(--surface-page);
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .surface-frosted-page {
+      background-color: var(--surface-page-translucent);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      backdrop-filter: blur(14px) saturate(1.3);
+    }
+  }
+  [data-lowfx="true"] .surface-frosted,
+  [data-lowfx="true"] .surface-frosted-page {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  [data-lowfx="true"] .surface-frosted {
+    background-color: var(--surface-overlay);
+  }
+  [data-lowfx="true"] .surface-frosted-page {
+    background-color: var(--surface-page);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .surface-frosted {
+      background-color: var(--surface-overlay);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    .surface-frosted-page {
+      background-color: var(--surface-page);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
   }
 
   /* Mono + uppercase for the "label" role (eyebrows, Stat labels). Color is
@@ -320,5 +605,53 @@
     }
   html {
     @apply font-sans;
+    /* Dark-only. Tells the UA to render form controls, scrollbars and the
+       overscroll gutter dark, so nothing flashes white at the edges. */
+    color-scheme: dark;
+    /* Firefox/standards scrollbar. Thin, silver on the page ground — the
+       default light scrollbar on a dark site reads as a bug. */
+    scrollbar-color: var(--silver-dark) transparent;
+    scrollbar-width: thin;
+    }
+
+  /* Anything monospaced is, by this site's rules, a value — so tabular
+     figures come with the typeface rather than having to be remembered at
+     every call site. */
+  .font-mono,
+  code,
+  kbd,
+  samp,
+  pre {
+    font-variant-numeric: tabular-nums;
+    }
+
+  ::selection {
+    background-color: var(--silver-light);
+    color: var(--surface-page);
+    }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--silver-dark);
+    border: 3px solid var(--surface-page);
+    border-radius: 999px;
+    }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--silver);
+    }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+    }
+
+  /* Anchor targets clear the sticky header instead of landing under it. */
+  :target,
+  [data-anchor] {
+    scroll-margin-top: calc(var(--nav-height) + 1.5rem);
     }
 }

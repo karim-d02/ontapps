@@ -9,16 +9,14 @@ import { createCn } from "cn/config";
 export const cn = createCn({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["display", "h1", "h2", "h3", "body", "small", "label"] }],
+      "font-size": [
+        { text: ["display", "h1", "h2", "h3", "metric", "body", "small", "label"] },
+      ],
     },
   },
 });
 
-export function formatDate(iso: string): string {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+// formatDate now lives in lib/deadlines.ts alongside the rest of the date
+// system. The version that used to live here built a Date from local Y/M/D,
+// which drifts by a day across timezones — not something a deadline site can
+// afford two implementations of.

@@ -1,16 +1,42 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ProgramCard } from "@/components/programs/program-card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { todayISO } from "@/lib/deadlines";
 import {
+  getCategoryLabel,
+  getGatekeepingModels,
   getProgramsBySchoolSlug,
   getSchoolBySlug,
   getSchools,
   getSchoolSlug,
 } from "@/lib/programs";
 
+export const revalidate = 3600;
+
 export function generateStaticParams() {
   return getSchools().map((school) => ({ school: getSchoolSlug(school) }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ school: string }>;
+}): Promise<Metadata> {
+  const { school: schoolSlug } = await params;
+  const school = getSchoolBySlug(schoolSlug);
+  if (!school) return {};
+
+  const programs = getProgramsBySchoolSlug(schoolSlug);
+  return {
+    title: school,
+    description: `Every ${school} program we track — ${programs
+      .map((program) => program.name)
+      .join(", ")} — with deadlines, supplementary applications and admission averages.`,
+    alternates: { canonical: `/programs/${schoolSlug}` },
+  };
 }
 
 export default async function SchoolProgramsPage({
@@ -26,15 +52,36 @@ export default async function SchoolProgramsPage({
     notFound();
   }
 
+  const gatekeepingModels = getGatekeepingModels();
+  const today = todayISO();
+
   return (
-    <main className="mx-auto max-w-2xl p-6 motion-safe:animate-fade-rise-sm">
-      <SectionHeader level={1} title={school} className="mb-section-md" />
-      <ul>
+    <main className="shell pt-6 pb-[var(--rhythm-section)] motion-safe:animate-fade-rise-sm">
+      <Breadcrumbs
+        back={{ label: "All programs", href: "/programs" }}
+        items={[{ label: "Programs", href: "/programs" }, { label: school }]}
+      />
+
+      <div className="mt-8">
+        <SectionHeader
+          level={1}
+          label={`${programs.length} ${programs.length === 1 ? "program" : "programs"}`}
+          title={school}
+        />
+      </div>
+
+      {/* The same card as the browse grid, rather than the bare bulleted list
+          this page used to be — a page that shows less than the page it came
+          from is a dead end. */}
+      <ul className="mt-12 grid grid-cols-1 gap-[var(--gutter)] sm:grid-cols-2 xl:grid-cols-3">
         {programs.map((program) => (
-          <li key={program.id}>
-            <Link href={`/programs/${schoolSlug}/${program.id}`}>{program.name}</Link>{" "}
-            — {program.campus}
-          </li>
+          <ProgramCard
+            key={program.id}
+            program={program}
+            today={today}
+            categoryLabel={getCategoryLabel(program.category) ?? program.category}
+            gatekeepingModels={gatekeepingModels}
+          />
         ))}
       </ul>
     </main>

@@ -87,12 +87,6 @@ export function ClusterScatterChart({ program }: { program: Program }) {
     return null;
   }
 
-  const suppApp = program.suppApp;
-  const keyLine = suppApp.required ? suppApp.weighting.keyLine : undefined;
-  const clustersSource = suppApp.required
-    ? suppApp.weighting.clustersSource
-    : undefined;
-
   const sortedPoints = [...points].sort((a, b) => a.x - b.x);
   const minY = Math.min(...sortedPoints.map((p) => p.y));
   const yOffset = minY - Y_PAD_BELOW_MIN;
@@ -102,14 +96,33 @@ export function ClusterScatterChart({ program }: { program: Program }) {
     [`p${index}`]: point.y - yOffset,
   }));
 
+  // The finding, stated in words. A scatter plot is invisible to a screen
+  // reader no matter how well it's built, and "chart" as alt text tells a
+  // reader nothing. This describes what the shape of the data means, and the
+  // cluster table immediately below it carries the same figures row by row as
+  // the accessible equivalent.
+  const description = [
+    `Scatter chart plotting supplementary application score against GPA for ${sortedPoints.length} outcome ${sortedPoints.length === 1 ? "cluster" : "clusters"}.`,
+    ...sortedPoints.map(
+      (point) =>
+        `Supp app score ${point.scoreLabel} with GPA ${point.gpaLabel}: ${point.outcome}${
+          point.count !== null ? `, ${point.count} offers` : ", count not published"
+        }.`
+    ),
+    "The same figures are listed in the table below this chart.",
+  ].join(" ");
+
   return (
-    <div className="mt-4">
-      {keyLine && (
-        <p className="text-body font-medium text-foreground">{keyLine}</p>
-      )}
+    <figure className="mt-8">
+      <div
+        role="img"
+        aria-label={description}
+        // The SVG's own text (axis ticks) would otherwise be read out as a
+        // meaningless run of numbers on top of the description.
+        className="[&_svg]:pointer-events-auto"
+      >
       <ScatterChart
         aspectRatio="4 / 3"
-        className="mt-4"
         data={data}
         margin={{ top: 16, right: 20, bottom: 32, left: 56 }}
         xDataKey="__x"
@@ -153,10 +166,10 @@ export function ClusterScatterChart({ program }: { program: Program }) {
           showDots={false}
         />
       </ScatterChart>
-      <p className="mt-5 text-small text-muted-foreground">
-        Positions are approximate.
-        {clustersSource && <> Source: {clustersSource}</>}
-      </p>
-    </div>
+      </div>
+      <figcaption className="mt-5 text-small text-muted-foreground">
+        Positions are approximate — the clusters are bands, not points.
+      </figcaption>
+    </figure>
   );
 }

@@ -22,7 +22,9 @@ const LEVEL_TAG = { 1: "h1", 2: "h2", 3: "h3" } as const;
 const LEVEL_CLASS = {
   1: "text-h1 uppercase text-metallic",
   2: "text-h2 text-foreground",
-  3: "text-h3 uppercase text-muted-foreground",
+  // Level 3 is a real subsection heading now, not a 13px uppercase caption.
+  // The mono-uppercase eyebrow role it used to play is what `label` is for.
+  3: "text-h3 text-foreground",
 } as const;
 
 export function SectionHeader({
