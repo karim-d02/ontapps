@@ -242,6 +242,10 @@ export type SuppApp = SuppAppNotRequired | SuppAppRequired;
 export interface Program {
   id: string;
   name: string;
+  // Used only in page titles, where the full name would push past the ~60
+  // characters Google renders. Set it when `name` is long enough to truncate;
+  // everything the reader actually sees on the page still uses `name`.
+  shortName?: string;
   school: string;
   campus: string;
   category: ProgramCategory;

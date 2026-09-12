@@ -56,6 +56,14 @@ export function getSchoolSlug(school: string): string {
   return slugify(school);
 }
 
+// "McMaster University" → "McMaster", "University of Toronto" → "Toronto".
+// For page titles only: every school we track is unambiguous without the word,
+// and it buys 10–14 characters inside a budget Google cuts at around 60. The
+// full name stays everywhere a reader sees it, including the page's own H1.
+export function getSchoolShortName(school: string): string {
+  return school.replace(/^University of /, "").replace(/ University$/, "");
+}
+
 export function getSchoolBySlug(slug: string): string | undefined {
   return getSchools().find((school) => getSchoolSlug(school) === slug);
 }

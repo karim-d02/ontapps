@@ -28,6 +28,7 @@ import {
   getCategoryLabel,
   getGatekeepingDescription,
   getProgramById,
+  getSchoolShortName,
   getSchoolSlug,
 } from "@/lib/programs";
 import { cn } from "@/lib/utils";
@@ -75,8 +76,16 @@ export async function generateMetadata({
   const supp = program.suppApp.required
     ? "Supplementary application required"
     : "No supplementary application";
-  const title = `${program.name} — ${program.school}`;
+  // Both halves are shortened: `shortName` where the program has one, and the
+  // school without the word "University". The longest of the eleven lands at
+  // 57 characters once the "· OntApps" template is appended, inside the ~60
+  // Google renders before it truncates.
+  const title = `${program.shortName ?? program.name} — ${getSchoolShortName(program.school)}`;
   const description = `${supp}. Deadlines, required courses, admission averages and the traps that catch applicants out. Verified ${formatDate(program.verifiedOn)}.`;
+  // Shorter than the description above, which is written for a search result.
+  // A card body is clamped near 125 characters on mobile, so this trades the
+  // long clause for the verified date rather than letting the tail be cut.
+  const cardDescription = `${supp}. Deadlines, required courses, averages and the traps to avoid. Verified ${formatDate(program.verifiedOn)}.`;
   const path = `/programs/${schoolSlug}/${program.id}`;
 
   return {
@@ -85,9 +94,15 @@ export async function generateMetadata({
     alternates: { canonical: path },
     openGraph: {
       title,
-      description,
+      description: cardDescription,
       url: path,
       type: "article",
+      // Declared again rather than inherited: a child `openGraph` replaces the
+      // root's outright, so without these two the program cards lost the
+      // site name and locale the root sets. Discord renders og:site_name above
+      // the title, and a card without it reads as coming from nowhere.
+      siteName: "OntApps",
+      locale: "en_CA",
       // Declared rather than left to the file convention so each card gets
       // the program's own alt text instead of one generic string shared by
       // all eleven. `type` matches what the convention emits at the root.
@@ -101,7 +116,7 @@ export async function generateMetadata({
         },
       ],
     },
-    twitter: { card: "summary_large_image", title, description },
+    twitter: { card: "summary_large_image", title, description: cardDescription },
   };
 }
 

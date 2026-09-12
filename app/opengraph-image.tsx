@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+import { LOGO_DATA_URI } from "@/lib/og-logo";
 import { getAllPrograms, getMeta, getSchools } from "@/lib/programs";
 
 export const alt = "OntApps — Ontario university program deadlines and requirements";
@@ -38,16 +39,22 @@ export default function Image() {
           fontFamily: "system-ui, sans-serif",
         }}
       >
-        {/* Wordmark, set the way the site header sets it. */}
+        {/* Wordmark, set the way the site header sets it. On this card it sits
+            top-left rather than bottom-left — the bottom row here is the
+            programs/universities count — so the mark follows it up here to
+            stay beside the word it identifies. 22px against 26px type. */}
         <div
           style={{
             display: "flex",
+            alignItems: "center",
+            gap: 12,
             fontSize: 26,
             fontWeight: 700,
             letterSpacing: 2,
             textTransform: "uppercase",
           }}
         >
+          <img src={LOGO_DATA_URI} width={22} height={22} alt="" style={{ borderRadius: 11 }} />
           OntApps
         </div>
 

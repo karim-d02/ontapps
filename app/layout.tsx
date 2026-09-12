@@ -37,8 +37,10 @@ export const metadata: Metadata = {
   // link shared into a group chat previews as nothing at all — which for a
   // site that spreads by being pasted between Grade 12s is the whole game.
   metadataBase: new URL(SITE_URL),
+  // 52 characters. Google shows roughly 60 before it truncates, and the
+  // template adds nothing to the default, so the whole title survives.
   title: {
-    default: "OntApps — Ontario university program deadlines and requirements",
+    default: "OntApps — Ontario program deadlines and requirements",
     template: "%s · OntApps",
   },
   // 147 characters. Google truncates around 155–160, so the whole sentence
@@ -57,9 +59,12 @@ export const metadata: Metadata = {
     siteName: "OntApps",
     locale: "en_CA",
     url: SITE_URL,
-    title: "OntApps — Ontario university program deadlines and requirements",
+    title: "OntApps — Ontario program deadlines and requirements",
+    // Shorter than the meta description above on purpose: a card body is
+    // clamped near 125 characters on mobile, well short of what a search
+    // result shows, so the sentence is cut to fit rather than trailing off.
     description:
-      "Deadlines, supplementary applications and admission averages for Ontario health, engineering and business programs. Every figure verified and dated.",
+      "Deadlines, supplementary applications and admission averages for Ontario university programs. Verified and dated.",
     // `images` is deliberately absent: app/opengraph-image.tsx is picked up by
     // Next's file convention and injected with a content hash. Declaring it
     // here would override that and lose the cache-busting.
@@ -70,9 +75,9 @@ export const metadata: Metadata = {
   // renders differently depending on where it was pasted.
   twitter: {
     card: "summary_large_image",
-    title: "OntApps — Ontario university program deadlines and requirements",
+    title: "OntApps — Ontario program deadlines and requirements",
     description:
-      "Deadlines, supplementary applications and admission averages for Ontario health, engineering and business programs. Every figure verified and dated.",
+      "Deadlines, supplementary applications and admission averages for Ontario university programs. Verified and dated.",
   },
   robots: { index: true, follow: true },
 }

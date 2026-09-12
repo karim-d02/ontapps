@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { daysBetween, formatDate, resolveEntry, todayISO } from "@/lib/deadlines";
+import { LOGO_DATA_URI } from "@/lib/og-logo";
 import { getAllPrograms, getProgramById, getSchoolSlug } from "@/lib/programs";
 
 export const alt = "Program deadline summary";
@@ -166,7 +167,13 @@ export default async function Image({
             letterSpacing: 2,
           }}
         >
-          <span>ONTAPPS</span>
+          {/* Identifier, not a focal point: 18px against a 20px mono line is
+              a shade over its cap height, which is enough to read as a mark
+              and not enough to compete with the countdown. */}
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img src={LOGO_DATA_URI} width={18} height={18} alt="" style={{ borderRadius: 9 }} />
+            ONTAPPS
+          </span>
           <span>VERIFIED {formatDate(program.verifiedOn).toUpperCase()}</span>
         </div>
       </div>
