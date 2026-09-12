@@ -30,7 +30,7 @@ const fontMono = Geist_Mono({
   display: "swap",
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ontapps.vercel.app"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ontapps.ca"
 
 export const metadata: Metadata = {
   // Without this, every Open Graph image URL resolves against localhost and a
@@ -38,11 +38,13 @@ export const metadata: Metadata = {
   // site that spreads by being pasted between Grade 12s is the whole game.
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "OntApps — Ontario university application deadlines and requirements",
+    default: "OntApps — Ontario university program deadlines and requirements",
     template: "%s · OntApps",
   },
+  // 147 characters. Google truncates around 155–160, so the whole sentence
+  // survives in a result rather than trailing off mid-clause.
   description:
-    "Deadlines, supplementary applications, admission averages and the traps that catch applicants out, for Ontario health, engineering and business programs. Checked by hand and dated.",
+    "Deadlines, supplementary applications and admission averages for Ontario health, engineering and business programs. Every figure verified and dated.",
   applicationName: "OntApps",
   // No `icons` key on purpose. Declaring one here *overrides* Next's
   // file-based convention, so `app/icon.png` and `app/apple-icon.png` were
@@ -55,8 +57,23 @@ export const metadata: Metadata = {
     siteName: "OntApps",
     locale: "en_CA",
     url: SITE_URL,
+    title: "OntApps — Ontario university program deadlines and requirements",
+    description:
+      "Deadlines, supplementary applications and admission averages for Ontario health, engineering and business programs. Every figure verified and dated.",
+    // `images` is deliberately absent: app/opengraph-image.tsx is picked up by
+    // Next's file convention and injected with a content hash. Declaring it
+    // here would override that and lose the cache-busting.
   },
-  twitter: { card: "summary_large_image" },
+  // Spelled out rather than left to inherit from openGraph. X, Slack and
+  // several link-preview services read the twitter:* tags first and fall back
+  // to og:* only when they're absent, so a card that relies on inheritance
+  // renders differently depending on where it was pasted.
+  twitter: {
+    card: "summary_large_image",
+    title: "OntApps — Ontario university program deadlines and requirements",
+    description:
+      "Deadlines, supplementary applications and admission averages for Ontario health, engineering and business programs. Every figure verified and dated.",
+  },
   robots: { index: true, follow: true },
 }
 

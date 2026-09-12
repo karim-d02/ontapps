@@ -5,7 +5,7 @@ import { getAllPrograms, getMeta, getSchools, getSchoolSlug } from "@/lib/progra
 // Sitemap entries must be absolute. metadataBase resolves the canonical and
 // Open Graph URLs in generateMetadata, but it does not apply here — relative
 // <loc> values make the whole sitemap invalid and search engines drop it.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ontapps.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ontapps.ca";
 const abs = (path: string) => new URL(path, SITE_URL).toString();
 
 /**

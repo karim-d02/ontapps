@@ -88,7 +88,18 @@ export async function generateMetadata({
       description,
       url: path,
       type: "article",
-      images: [{ url: `${path}/opengraph-image`, width: 1200, height: 630, alt: title }],
+      // Declared rather than left to the file convention so each card gets
+      // the program's own alt text instead of one generic string shared by
+      // all eleven. `type` matches what the convention emits at the root.
+      images: [
+        {
+          url: `${path}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          type: "image/png",
+          alt: title,
+        },
+      ],
     },
     twitter: { card: "summary_large_image", title, description },
   };
