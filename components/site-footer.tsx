@@ -25,10 +25,11 @@ export function SiteFooter() {
               {staleCount} official {staleCount === 1 ? "page" : "pages"} currently wrong
             </span>
           </Link>
+          {/* An instruction, not an assertion. The previous wording claimed
+              the official page "decides your application", which is a fact
+              about university process that the dataset doesn't record. */}
           <p className="measure text-small text-muted-foreground">
-            Always confirm against the university&apos;s own page before you act. If this
-            site and an official page disagree, the official page is the one that
-            decides your application.
+            Always confirm against the university&apos;s own page before you act.
           </p>
         </div>
 

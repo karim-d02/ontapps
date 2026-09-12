@@ -225,6 +225,14 @@
     --gutter: 1rem; /* 16 */
     --rhythm-section: 3.5rem; /* 56 — the single gap between page sections */
 
+    /* Rendered height of the university wordmarks in the conveyor. Small
+       enough that more than one is visible on a 375px phone, large enough that
+       McMaster's crest and U of T's tree still hold together. Must be declared
+       here as well as in the breakpoint override — without a base value the
+       calc() that consumes it is invalid at narrow widths and the marks fall
+       back to their intrinsic 200px height. */
+    --logo-height: 32px;
+
     --card: var(--surface-raised);
     --card-foreground: var(--color-white);
     --popover: var(--surface-overlay);
@@ -308,6 +316,7 @@
         --shell-pad: 1.5rem; /* 24 */
         --gutter: 1.5rem; /* 24 */
         --rhythm-section: 5rem; /* 80 */
+        --logo-height: 40px;
     }
 }
 
@@ -473,6 +482,214 @@
       transparent 100%
     );
     pointer-events: none;
+  }
+
+  /* ── HEADLINE GLIMMER ─────────────────────────────────────────────────── */
+
+  /* A narrow band of brighter light crossing the display headline, on the
+     same 100deg as the metallic gradient it sits on.
+
+     Two background layers on one element: the band on top, the existing
+     metallic ramp underneath, both clipped to the glyphs. Only
+     `background-position` animates — `background-size` is set once and never
+     touched, so nothing here can trigger layout. It repaints, but the painted
+     area is a single headline and the sweep runs for 1.2s once every 10s.
+
+     Requires the gradient to be on the heading itself rather than on
+     per-word spans: background-clip:text doesn't inherit, so a split headline
+     gets one gradient per word and the band would cross all of them at once
+     instead of travelling across the line. */
+  .headline-glimmer {
+    background-image:
+      linear-gradient(
+        100deg,
+        transparent 42%,
+        oklch(1 0 0 / 0.55) 50%,
+        transparent 58%
+      ),
+      linear-gradient(
+        100deg,
+        var(--silver-light) 0%,
+        var(--color-white) 24%,
+        var(--silver-light) 62%,
+        var(--silver) 100%
+      );
+    background-size:
+      220% 100%,
+      100% 100%;
+    background-position:
+      -120% 0,
+      0 0;
+    background-repeat: no-repeat;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    /* 1s delay: the entrance settles at 400ms, so the two never compete. */
+    animation: headline-glimmer 10s linear 1s infinite;
+  }
+
+  /* 12% of 10s is a 1.2s sweep; the rest of the cycle it sits off the edge. */
+  @keyframes headline-glimmer {
+    0% {
+      background-position:
+        -120% 0,
+        0 0;
+    }
+    12% {
+      background-position:
+        220% 0,
+        0 0;
+    }
+    100% {
+      background-position:
+        220% 0,
+        0 0;
+    }
+  }
+
+  /* Static, at the full gradient. Not a slower sweep — none. */
+  @media (prefers-reduced-motion: reduce) {
+    .headline-glimmer {
+      animation: none;
+      background-position:
+        220% 0,
+        0 0;
+    }
+  }
+
+  /* ── LOGO CONVEYOR ────────────────────────────────────────────────────── */
+
+  /* The track holds N identical copies of the logo set and shifts left by
+     exactly one copy — `-100% / N` of its own width — before restarting. The
+     frame it restarts on is pixel-identical to the frame it left, so there is
+     no seam and no jump.
+
+     translate3d only. Animating `left`, `margin` or `background-position`
+     would put this on the layout path and judder on every phone. */
+  .conveyor-track {
+    display: flex;
+    width: max-content;
+    animation: conveyor var(--conveyor-duration, 45s) linear infinite;
+    will-change: transform;
+  }
+
+  @keyframes conveyor {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(calc(-100% / var(--conveyor-copies)), 0, 0);
+    }
+  }
+
+  /* Paused on hover and on keyboard focus, because every logo is a link and a
+     moving target is close to unclickable. Paused off-screen too: a perpetual
+     animation in a backgrounded tab is a real battery cost on a phone. */
+  .conveyor:hover .conveyor-track,
+  .conveyor:focus-within .conveyor-track,
+  .conveyor[data-visible="false"] .conveyor-track {
+    animation-play-state: paused;
+  }
+
+  /* Fades to the page ground at both ends so a mark never clips mid-word. */
+  .conveyor-mask {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 5rem,
+      black calc(100% - 5rem),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 5rem,
+      black calc(100% - 5rem),
+      transparent
+    );
+  }
+
+  /* ── GLIMMER ──────────────────────────────────────────────────────────── */
+
+  /* A narrow band of light crossing each mark, masked to the letterforms by
+     the logo's own alpha so the light appears to catch on the type rather than
+     sliding over a rectangle above it. The <img> underneath is untouched.
+
+     The band leans to match the 100deg of .text-metallic — expressed as a skew
+     on a vertical bar rather than as a gradient angle, so the only animated
+     property is a transform. */
+  .glimmer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: var(--logo);
+    mask-image: var(--logo);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+
+  .glimmer::after {
+    content: "";
+    position: absolute;
+    top: -30%;
+    bottom: -30%;
+    left: 0;
+    width: 30%;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--silver-light) 35%,
+      var(--color-white) 50%,
+      var(--silver-light) 65%,
+      transparent
+    );
+    /* Tuned by measurement, not by eye: at 0.28 the band lifted the lit
+       pixels by ~4%, which on a mark moving at 24px/s was past subtle and
+       into invisible. 0.5 lifts the peak from ~168 to ~205 out of 255 — a
+       catch of light you notice when you look at it and not before. Much
+       above this and it starts to read as a shiny button. */
+    opacity: 0.5;
+    transform: translate3d(-200%, 0, 0) skewX(-10deg);
+    animation: glimmer var(--glimmer-cycle, 8s) linear infinite;
+    animation-delay: var(--glimmer-delay, 0s);
+  }
+
+  /* ~1.1s of sweep, then the rest of the cycle parked off the right edge. */
+  @keyframes glimmer {
+    0% {
+      transform: translate3d(-200%, 0, 0) skewX(-10deg);
+    }
+    14% {
+      transform: translate3d(460%, 0, 0) skewX(-10deg);
+    }
+    100% {
+      transform: translate3d(460%, 0, 0) skewX(-10deg);
+    }
+  }
+
+  /* Off, not slowed. A static centred row: the duplicate sets that exist only
+     to make the loop seamless are removed, the mask goes, and nothing moves. */
+  @media (prefers-reduced-motion: reduce) {
+    .conveyor-track {
+      animation: none;
+      transform: none;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .conveyor-mask {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .conveyor-copy[data-duplicate="true"] {
+      display: none;
+    }
+    .glimmer {
+      display: none;
+    }
   }
 
   /* POINTER LIGHT — a soft highlight that tracks the cursor across a card.

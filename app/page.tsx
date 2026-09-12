@@ -7,11 +7,12 @@ import { CountUp } from "@/components/ui/count-up";
 import { DateStamp } from "@/components/ui/date-stamp";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionHeader } from "@/components/ui/section-header";
-import { UniversityMarquee } from "@/components/university-marquee";
+import { Universities, type UniversityEntry } from "@/components/universities";
 import { formatDateLong, nextUpcoming, todayISO } from "@/lib/deadlines";
 import {
   getAllPrograms,
   getCategories,
+  getSchools,
   getSchoolSlug,
   getStaleOfficialPages,
 } from "@/lib/programs";
@@ -28,6 +29,26 @@ export default function Page() {
   const today = todayISO();
 
   const next = nextUpcoming(programs, today);
+
+  // The logo filenames are the one thing here that isn't in the dataset — the
+  // schools' own asset names don't follow from their titles ("University of
+  // Toronto" ships as uoft). Everything else, including the counts, is read.
+  const LOGO_FILE: Record<string, string> = {
+    "mcmaster-university": "mcmaster",
+    "queens-university": "queens",
+    "university-of-toronto": "uoft",
+    "university-of-waterloo": "waterloo",
+    "western-university": "western",
+  };
+
+  const universities: UniversityEntry[] = getSchools().map((school) => {
+    const slug = getSchoolSlug(school);
+    return {
+      name: school,
+      href: `/programs/${slug}`,
+      logo: LOGO_FILE[slug] ?? slug,
+    };
+  });
 
   // One trap per category, so the three cards span the whole site rather than
   // happening to be three from whichever program sorts first. Deterministic:
@@ -48,21 +69,26 @@ export default function Page() {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="grid-12 pt-[var(--rhythm-section)] pb-[var(--rhythm-section)]">
         <div className="col-span-12 lg:col-span-9">
+          {/* No animateWords: splitting the headline into per-word spans gives
+              each word its own gradient (background-clip:text doesn't inherit),
+              which both looked stripey and would make the glimmer cross every
+              word at once instead of travelling across the line. */}
           <SectionHeader
             level={1}
             title="Simplifying Your Uni Applications"
-            titleClassName="text-display"
-            animateWords
+            titleClassName="text-display headline-glimmer motion-safe:animate-fade-rise"
           />
           <p
             className="measure mt-8 text-body text-muted-foreground motion-safe:animate-fade-rise"
             style={{ animationDelay: "60ms" }}
           >
-            Ontario&apos;s health, engineering and business programs each run their own
-            deadlines, supplementary applications and admission averages — and the
-            official pages are often stale or contradict themselves. Everything here is
-            checked against the university&apos;s own page and dated, so you know what is
-            true right now.
+            {/* Leads with the reader's problem. No em dashes, no semicolons
+                doing an em dash's job, and no claim beyond the three the
+                brief allows. 34 words. */}
+            Every Ontario health, engineering and business program sets its own
+            deadlines, supplementary applications and admission averages. The official
+            pages are often stale or contradict themselves. Everything here is checked
+            against the university&apos;s own page, and dated.
           </p>
           <div
             className="mt-10 flex flex-wrap items-center gap-4 motion-safe:animate-fade-rise"
@@ -249,8 +275,13 @@ export default function Page() {
         className="mt-[var(--rhythm-section)] border-t border-line-strong pt-[var(--rhythm-section)]"
       >
         <SectionHeader level={2} label="04" title="Universities we cover" />
-        <div className="mt-8">
-          <UniversityMarquee />
+
+        {/* Generous air either side — a conveyor pressed against its
+            neighbours reads as a cramped strip rather than as a band of
+            movement. It stays inside the shell like every other section, and
+            its own gradient mask is what ends it. */}
+        <div className="pt-14 pb-[var(--rhythm-section)]">
+          <Universities universities={universities} />
         </div>
       </Reveal>
     </main>

@@ -168,7 +168,7 @@ export function ClusterScatterChart({ program }: { program: Program }) {
       </ScatterChart>
       </div>
       <figcaption className="mt-5 text-small text-muted-foreground">
-        Positions are approximate — the clusters are bands, not points.
+        Positions on this chart are approximate.
       </figcaption>
     </figure>
   );

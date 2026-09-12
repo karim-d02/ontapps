@@ -36,7 +36,22 @@ const MATH_4U = ["MCV4U", "MHF4U", "MDM4U"];
 export type Requirement =
   | { kind: "course"; raw: string; code: string; min: number | null; note: string | null }
   | { kind: "oneOf"; raw: string; codes: string[]; min: number | null; note: string | null }
-  | { kind: "unverifiable"; raw: string; note: string | null };
+  | {
+      kind: "unverifiable";
+      raw: string;
+      note: string | null;
+      /**
+       * `extraCredits` is a plain count of further courses ("Three additional
+       * 4U/M courses") — nothing to fail, you either have six credits or you
+       * don't. `constrained` is a real condition on what those credits may be
+       * ("One non-math, non-science, non-technology 4U/M credit"), which a
+       * student can genuinely miss. Collapsing the two into one "can't check"
+       * message buried McMaster Health Sci's non-science credit next to
+       * Western's "Two electives", and the dataset says in as many words that
+       * it is "a requirement, not a suggestion".
+       */
+      shape: "extraCredits" | "constrained";
+    };
 
 export function parseRequirement(raw: string): Requirement {
   const separator = raw.indexOf(": ");
@@ -67,7 +82,41 @@ export function parseRequirement(raw: string): Requirement {
     return { kind: "oneOf", raw, codes: [...MATH_4U], min, note };
   }
 
-  return { kind: "unverifiable", raw, note };
+  // "Two additional 4U/M courses" / "Two electives" are counts. Anything else
+  // that reaches here is a condition on the credit, not just a tally of them.
+  const shape = /\b(additional|elective)/i.test(head) ? "extraCredits" : "constrained";
+  return { kind: "unverifiable", raw, note, shape };
+}
+
+/**
+ * A minimum mark that applies to every required course, stated at program
+ * level rather than on the individual requirement strings.
+ *
+ * Two programs state one, and they state it in two different places:
+ *   · Western Health Sci — courses.notes: "Required courses need a minimum 70%
+ *     unless otherwise noted."
+ *   · Western Med Sci — an averages entry whose figure is "70% in required
+ *     courses", sourced to "Western: required course floor".
+ *
+ * The checker read neither, so a student with ENG4U at 65% was told they met
+ * Western's requirements. "Unless otherwise noted" is honoured by treating
+ * this as a default: a requirement that states its own minimum keeps it.
+ */
+export function requiredCourseFloor(
+  program: Program
+): { min: number; source: string } | null {
+  const fromNotes = /(?:minimum|at least)\s+(\d{2,3})\s*%/i.exec(program.courses.notes ?? "");
+  if (fromNotes) {
+    return { min: Number(fromNotes[1]), source: program.courses.notes };
+  }
+
+  for (const average of program.averages) {
+    if (average.type !== "official") continue;
+    const match = /(\d{2,3})\s*%\s+in required courses/i.exec(average.figure);
+    if (match) return { min: Number(match[1]), source: average.source };
+  }
+
+  return null;
 }
 
 /** Every distinct 4U/M course code the dataset mentions, for the checkbox list. */
@@ -110,6 +159,10 @@ export interface RequirementResult {
 export interface ProgramResult {
   program: Program;
   results: RequirementResult[];
+  /** Program-level minimum applied to required courses, if the data states one. */
+  floor: { min: number; source: string } | null;
+  /** Courses the iBioMed stream needs on top, that aren't ticked. */
+  streamMissing: string[];
   /**
    * `meets` — every checkable requirement is satisfied.
    * `missing` — at least one requirement is definitely not satisfied.
@@ -160,19 +213,25 @@ function courseDetail(
  */
 export function evaluateProgram(program: Program, state: CourseState): ProgramResult {
   const requirements = program.courses.required.map(parseRequirement);
+  const floor = requiredCourseFloor(program);
+  // "unless otherwise noted": a requirement that states its own minimum keeps
+  // it; everything else inherits the program-level floor.
+  const minFor = (stated: number | null) => stated ?? floor?.min ?? null;
+
   const consumed = new Set<string>();
   const results = new Array<RequirementResult>(requirements.length);
 
   requirements.forEach((requirement, index) => {
     if (requirement.kind !== "course") return;
-    const status = checkCourse(requirement.code, requirement.min, state);
+    const min = minFor(requirement.min);
+    const status = checkCourse(requirement.code, min, state);
     if (status === "met" || status === "unknown-mark" || status === "below-minimum") {
       consumed.add(requirement.code);
     }
     results[index] = {
       requirement,
       status,
-      detail: courseDetail(requirement.code, requirement.min, status, state),
+      detail: courseDetail(requirement.code, min, status, state),
     };
   });
 
@@ -181,7 +240,10 @@ export function evaluateProgram(program: Program, state: CourseState): ProgramRe
     results[index] = {
       requirement,
       status: "unverifiable",
-      detail: "Not something these checkboxes can confirm — check it yourself.",
+      detail:
+        requirement.shape === "extraCredits"
+          ? "Counts towards your six credits — not something these checkboxes track."
+          : "A real requirement, and not one these checkboxes can confirm. Check it yourself.",
     };
   });
 
@@ -194,10 +256,11 @@ export function evaluateProgram(program: Program, state: CourseState): ProgramRe
     .sort((a, b) => a.requirement.codes.length - b.requirement.codes.length);
 
   for (const { requirement, index } of oneOfIndexes) {
+    const min = minFor(requirement.min);
     const available = requirement.codes.filter((code) => !consumed.has(code));
     const statuses = available.map((code) => ({
       code,
-      status: checkCourse(code, requirement.min, state),
+      status: checkCourse(code, min, state),
     }));
 
     // A course held without a mark can't clear a minimum, but it isn't a
@@ -213,7 +276,7 @@ export function evaluateProgram(program: Program, state: CourseState): ProgramRe
       results[index] = {
         requirement,
         status: pick.status,
-        detail: courseDetail(pick.code, requirement.min, pick.status, state),
+        detail: courseDetail(pick.code, min, pick.status, state),
       };
       continue;
     }
@@ -238,9 +301,35 @@ export function evaluateProgram(program: Program, state: CourseState): ProgramRe
     (result) => result.status === "unknown-mark" || result.status === "unverifiable"
   );
 
+  // McMaster Engineering carries a second, longer list for its iBioMed stream
+  // (the Engineering I list plus SBI4U). The checker ignored it entirely, so a
+  // student without Biology was told they met the requirements for a page
+  // titled "Engineering I and iBioMed". Surfaced as a separate line rather
+  // than folded into the main verdict, because the two are different
+  // applications with different lists.
+  // Only what the stream needs *beyond* the main list — reporting every
+  // unticked course in the stream list repeats the main verdict and buries
+  // the one course that actually differs (SBI4U).
+  const mainCodes = new Set(
+    requirements.flatMap((requirement) =>
+      requirement.kind === "course" ? [requirement.code] : []
+    )
+  );
+  const streamMissing = (program.courses.requiredIBioMed ?? [])
+    .map(parseRequirement)
+    .filter(
+      (requirement) =>
+        requirement.kind === "course" &&
+        !mainCodes.has(requirement.code) &&
+        !state[requirement.code]?.have
+    )
+    .map((requirement) => (requirement.kind === "course" ? requirement.code : ""));
+
   return {
     program,
     results,
+    floor,
+    streamMissing,
     verdict: hasFailure ? "missing" : hasUnknown ? "incomplete" : "meets",
   };
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ClusterScatterChart } from "@/components/programs/cluster-scatter-chart";
-import { GenericDetails, hasDetails } from "@/components/programs/generic-details";
 import { ProgramToc, type TocItem } from "@/components/programs/program-toc";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,14 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Stat } from "@/components/ui/stat";
 import { formatDate, resolveEntry, todayISO, type DatedItem } from "@/lib/deadlines";
+import { whatThisMeans } from "@/lib/program-meaning";
+import {
+  dateCollisions,
+  internalProximity,
+  notPublished,
+  sameCategoryElsewhere,
+  sameGatekeeping,
+} from "@/lib/relations";
 import {
   getAllPrograms,
   getCategoryLabel,
@@ -24,11 +32,16 @@ import {
 } from "@/lib/programs";
 import { cn } from "@/lib/utils";
 import type {
+  AccessChain,
+  AdjustmentFactor,
+  AiScoring,
+  AlternativeOffer,
   AverageEntry,
   Courses,
   GatekeepingModel,
   Program,
   Sources,
+  LookingFor,
   PostSystem,
   SuppAppComponent,
   SuppAppRubric,
@@ -100,17 +113,43 @@ export default async function ProgramPage({
   }
 
   const today = todayISO();
-  const additionalDetails = buildAdditionalDetails(program);
+  const tightDates = internalProximity(program);
 
   // Sections are assembled as data first so the contents list and the page
   // itself can't disagree about what's on the page — a TOC entry pointing at a
   // section that a conditional dropped is the classic version of this bug.
   const sections: { id: string; label: string; node: React.ReactNode }[] = [
+    ...(program.howToApply
+      ? [
+          {
+            id: "how-to-apply",
+            label: "How to apply",
+            node: (
+              <p className="measure text-body text-foreground">{program.howToApply}</p>
+            ),
+          },
+        ]
+      : []),
     {
       id: "timeline",
       label: "Timeline",
-      node: <TimelineSection timeline={program.timeline} today={today} />,
+      node: (
+        <TimelineSection
+          timeline={program.timeline}
+          today={today}
+          tightDates={tightDates}
+        />
+      ),
     },
+    ...(program.accessChain
+      ? [
+          {
+            id: "access-chain",
+            label: program.accessChain.title,
+            node: <AccessChainSection accessChain={program.accessChain} />,
+          },
+        ]
+      : []),
     ...(program.yearThreeEntry
       ? [
           {
@@ -148,21 +187,49 @@ export default async function ProgramPage({
       label: "Required courses",
       node: <CoursesSection courses={program.courses} />,
     },
+    ...(program.majors && program.majors.length > 0
+      ? [
+          {
+            id: "majors",
+            label: "Majors",
+            node: <MajorsSection majors={program.majors} />,
+          },
+        ]
+      : []),
     {
       id: "averages",
       label: "Averages",
-      node: <AveragesSection averages={program.averages} />,
+      node: (
+        <AveragesSection
+          averages={program.averages}
+          adjustmentFactor={program.adjustmentFactor}
+        />
+      ),
     },
+    ...(program.alternativeOffer
+      ? [
+          {
+            id: "alternative-offer",
+            label: "Alternative offer",
+            node: <AlternativeOfferSection alternativeOffer={program.alternativeOffer} />,
+          },
+        ]
+      : []),
     { id: "traps", label: "Traps", node: <TrapsSection traps={program.traps} /> },
     ...(program.prep
       ? [{ id: "prep", label: "Prep", node: <PrepSection prep={program.prep} /> }]
       : []),
-    ...(hasDetails(additionalDetails)
+    {
+      id: "related",
+      label: "Related programs",
+      node: <RelatedSection program={program} />,
+    },
+    ...(notPublished(program).length > 0
       ? [
           {
-            id: "details",
-            label: "Additional details",
-            node: <GenericDetails data={additionalDetails} />,
+            id: "not-published",
+            label: "What the university hasn't published",
+            node: <NotPublishedSection items={notPublished(program)} />,
           },
         ]
       : []),
@@ -247,6 +314,17 @@ function ProgramHeader({ program, today }: { program: Program; today: string }) 
             </Pill>
             <span className="text-small text-muted-foreground">{categoryLabel}</span>
           </div>
+
+          {/* Templated sentences selected by field values — see
+              lib/program-meaning.ts for the full fragment list and the field
+              each claim maps to. */}
+          <div className="measure mt-5 flex flex-col gap-2">
+            {whatThisMeans(program).map((line) => (
+              <p key={line.source} className="text-body text-muted-foreground">
+                {line.text}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -320,39 +398,32 @@ function ProgramHeader({ program, today }: { program: Program; today: string }) 
               </dd>
             )}
           </div>
-        ) : (
-          <div>
-            <dt className="text-label label-mono text-silver">Gatekeeping</dt>
-            <dd className="mt-2 max-w-[22rem] text-small text-muted-foreground">
-              {gatekeepingDescription}
-            </dd>
-          </div>
-        )}
+        ) : null}
       </dl>
 
-      {program.applicants && (
-        <p className="mt-6 measure text-body text-muted-foreground">
-          {gatekeepingDescription}
-        </p>
-      )}
+      {/* The gatekeeping definition used to be printed here as well; it is now
+          the first line of "What this means" above, and printing it twice on
+          one screen said nothing the second time. */}
 
       <OuacCodes program={program} />
 
-      {/* The protection line. Stated where it will actually be read, not
-          buried at the bottom with the sources. */}
+      {/* The protection line. Deliberately an instruction and a date, with no
+          assertion about how universities behave: an earlier version said
+          "Official pages change without notice", which is a claim about the
+          world that no field in the dataset supports. */}
       <p className="measure mt-6 border-l-2 border-silver pl-4 text-small text-muted-foreground">
         Verified{" "}
         <time dateTime={program.verifiedOn} className="data text-foreground">
           {formatDate(program.verifiedOn)}
         </time>
-        . Official pages change without notice — confirm against{" "}
+        . Confirm against{" "}
         <a
           href="#sources"
           className="rounded-sm text-foreground underline decoration-silver underline-offset-4 outline-none transition-colors hover:decoration-silver-light focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
         >
           the university&apos;s own page
         </a>{" "}
-        before you act on anything here.
+        before you act.
       </p>
     </header>
   );
@@ -396,7 +467,16 @@ function nextDatedEntry(timeline: TimelineEntry[], today: string): DatedItem | n
   return dated.find((item) => item.daysRemaining! >= 0) ?? dated.at(-1) ?? null;
 }
 
-function TimelineSection({ timeline, today }: { timeline: TimelineEntry[]; today: string }) {
+function TimelineSection({
+  timeline,
+  today,
+  tightDates,
+}: {
+  timeline: TimelineEntry[];
+  today: string;
+  /** Confirmed dates that fall within 14 days of another confirmed date. */
+  tightDates: Set<string>;
+}) {
   const items = timeline.map((entry) => resolveEntry(entry, today));
 
   return (
@@ -418,6 +498,12 @@ function TimelineSection({ timeline, today }: { timeline: TimelineEntry[]; today
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
             <DateStamp item={item} size="md" />
             {item.critical && <Pill>Critical</Pill>}
+            {/* Marks a confirmed date sitting within a fortnight of another
+                confirmed date on this same program — Queen's Commerce's 1 and
+                15 February, for instance. States the fact, nothing more. */}
+            {item.date && tightDates.has(item.date) && (
+              <Pill tone="muted">Within 14 days of another date</Pill>
+            )}
           </div>
           <p
             className={cn(
@@ -677,6 +763,11 @@ function SuppAppSection({ program, today }: { program: Program; today: string })
 
       {suppApp.rubric && <RubricDetail rubric={suppApp.rubric} />}
 
+      {/* Both describe the supplementary application itself, so they live in
+          this section rather than in a catch-all at the foot of the page. */}
+      {program.aiScoring && <AiScoringDetail aiScoring={program.aiScoring} />}
+      {program.lookingFor && <LookingForDetail lookingFor={program.lookingFor} />}
+
       {suppApp.invite && (
         <p className="measure mt-6 text-small text-muted-foreground">{suppApp.invite}</p>
       )}
@@ -872,6 +963,18 @@ function CoursesSection({ courses }: { courses: Courses }) {
           </ul>
         </div>
       )}
+      {/* A second required list for a stream within the same program, which
+          used to surface only as "Required I Bio Med" in the generic bin. */}
+      {courses.requiredIBioMed && courses.requiredIBioMed.length > 0 && (
+        <div className="mt-6">
+          <p className="text-label label-mono text-silver">Required for iBioMed</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {courses.requiredIBioMed.map((course, index) => (
+              <CourseChip key={index} course={course} />
+            ))}
+          </ul>
+        </div>
+      )}
       {courses.notes && (
         <p className="measure mt-5 text-small text-muted-foreground">{courses.notes}</p>
       )}
@@ -891,7 +994,13 @@ function CourseChip({ course, muted }: { course: string; muted?: boolean }) {
   );
 }
 
-function AveragesSection({ averages }: { averages: AverageEntry[] }) {
+function AveragesSection({
+  averages,
+  adjustmentFactor,
+}: {
+  averages: AverageEntry[];
+  adjustmentFactor?: AdjustmentFactor;
+}) {
   const official = averages.filter((average) => average.type === "official");
   const community = averages.filter((average) => average.type === "community");
 
@@ -900,39 +1009,67 @@ function AveragesSection({ averages }: { averages: AverageEntry[] }) {
       {official.length > 0 && (
         <ul className="flex flex-col gap-6">
           {official.map((average, index) => (
-            <li key={index}>
-              <Stat value={average.figure} label={average.source} size="md" labelPosition="above" />
-              {average.note && (
-                <p className="measure mt-2 text-small text-muted-foreground">{average.note}</p>
-              )}
-            </li>
+            <AverageEntryRow key={index} average={average} />
           ))}
         </ul>
       )}
-      {/* Community figures stay visually subordinate: smaller, quieter, after
-          the official ones, and never without the qualifier. */}
+
+      {/* Community figures stay visually subordinate: quieter, after the
+          official ones, and never without the label that says what they are.
+          No characterisation is added here — whatever a given entry's `note`
+          says is the whole of it. */}
       {community.length > 0 && (
         <div className="mt-8 border-t border-line pt-6">
-          <p className="text-label label-mono text-silver">
-            Community-reported · self-reported, skews high
-          </p>
+          <p className="text-label label-mono text-silver">Community-reported</p>
           <ul className="mt-4 flex flex-col gap-4">
             {community.map((average, index) => (
-              <li key={index}>
-                <p className="text-small text-muted-foreground">
-                  <span className="text-label label-mono text-silver">{average.source}</span>
-                  <br />
-                  <span className="data text-foreground">{average.figure}</span>
-                </p>
-                <p className="measure mt-1 text-small text-muted-foreground">
-                  {average.note ?? "Self-reported, skews high."}
-                </p>
-              </li>
+              <AverageEntryRow key={index} average={average} quiet />
             ))}
           </ul>
         </div>
       )}
+
+      {/* Waterloo's adjustment factor describes how the admission average is
+          arrived at, so it belongs beside the averages rather than in a bin
+          at the bottom of the page. */}
+      {adjustmentFactor && (
+        <div className="mt-8 border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">Adjustment factor</p>
+          <p className="measure mt-3 text-body text-foreground">{adjustmentFactor.body}</p>
+          {adjustmentFactor.note && (
+            <p className="measure mt-3 text-small text-muted-foreground">
+              {adjustmentFactor.note}
+            </p>
+          )}
+        </div>
+      )}
     </>
+  );
+}
+
+/**
+ * One published figure: source, then figure, then note.
+ *
+ * The note is an annotation on the figure and is nested inside this component
+ * rather than rendered as a sibling, so there is no arrangement of the data
+ * that produces a note with no figure above it.
+ */
+function AverageEntryRow({ average, quiet }: { average: AverageEntry; quiet?: boolean }) {
+  return (
+    <li>
+      {/* Stat carries the source-then-figure pair; the note is a sibling of
+          that pair inside this row, never a sibling of the list item, so a
+          note can't be rendered for an entry whose figure wasn't. */}
+      <Stat
+        value={average.figure}
+        label={average.source}
+        size={quiet ? "sm" : "md"}
+        labelPosition="above"
+      />
+      {average.note && (
+        <p className="measure mt-2 text-small text-muted-foreground">{average.note}</p>
+      )}
+    </li>
   );
 }
 
@@ -1037,69 +1174,218 @@ function ProgramJsonLd({ program, schoolSlug }: { program: Program; schoolSlug: 
   );
 }
 
-function buildAdditionalDetails(program: Program): Record<string, unknown> {
-  const {
-    majors,
-    accessChain,
-    adjustmentFactor,
-    aiScoring,
-    alternativeOffer,
-    lookingFor,
-    howToApply,
-    courses,
-    suppApp,
-  } = program;
+/* ── Sections built from fields that used to land in the generic bin ─────── */
 
-  let supplementaryApplication: Record<string, unknown> | undefined;
-  let weighting: Record<string, unknown> | undefined;
+function AccessChainSection({ accessChain }: { accessChain: AccessChain }) {
+  return (
+    <>
+      <ol className="measure flex flex-col gap-3">
+        {accessChain.steps.map((step, index) => (
+          <li key={index} className="flex gap-4 text-body text-foreground">
+            <span aria-hidden className="data mt-px shrink-0 text-small text-silver">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      <dl className="mt-6 grid grid-cols-1 gap-x-[var(--gutter)] gap-y-4 sm:grid-cols-2">
+        <Field label="Worst case" value={accessChain.worstCase} />
+        <Field label="Advice" value={accessChain.advice} />
+      </dl>
+    </>
+  );
+}
 
-  if (suppApp.required) {
-    const {
-      required: _required,
-      platform: _platform,
-      format: _format,
-      limit: _limit,
-      evaluators: _evaluators,
-      note: _note,
-      formatWarning: _formatWarning,
-      formatUnconfirmed: _formatUnconfirmed,
-      mismatch: _mismatch,
-      rubricNote: _rubricNote,
-      components: _components,
-      known: _known,
-      random: _random,
-      deadline: _deadline,
-      fee: _fee,
-      questionsPublishedInAdvance: _questionsPublishedInAdvance,
-      rubricPublished: _rubricPublished,
-      weighting: suppAppWeighting,
-      ...suppAppRest
-    } = suppApp;
-    supplementaryApplication = suppAppRest;
+function MajorsSection({ majors }: { majors: string[] }) {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {majors.map((major) => (
+        <li key={major} className="max-w-full">
+          <Pill wrap tone="muted" className="normal-case">
+            {major}
+          </Pill>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-    const {
-      type: _type,
-      official: _official,
-      summary: _summary,
-      note: _weightingNote,
-      clusters: _clusters,
-      clustersSource: _clustersSource,
-      keyLine: _keyLine,
-      ...weightingRest
-    } = suppAppWeighting;
-    weighting = weightingRest;
-  }
+function AlternativeOfferSection({
+  alternativeOffer,
+}: {
+  alternativeOffer: AlternativeOffer;
+}) {
+  return (
+    <>
+      <p className="measure text-body text-foreground">{alternativeOffer.body}</p>
+      {alternativeOffer.note && (
+        <p className="measure mt-4 text-small text-muted-foreground">
+          {alternativeOffer.note}
+        </p>
+      )}
+    </>
+  );
+}
 
-  return {
-    majors,
-    accessChain,
-    adjustmentFactor,
-    aiScoring,
-    alternativeOffer,
-    lookingFor,
-    howToApply,
-    requiredIBioMed: courses.requiredIBioMed,
-    supplementaryApplication,
-    weighting,
-  };
+/**
+ * Waterloo's disclosure about how the AIF is scored. It describes the
+ * supplementary application, so it sits inside that section.
+ */
+function AiScoringDetail({ aiScoring }: { aiScoring: AiScoring }) {
+  return (
+    <div className="mt-10">
+      <h3 className="text-h3 text-foreground">Scoring</h3>
+      <p className="measure mt-3 text-body text-foreground">{aiScoring.body}</p>
+      {aiScoring.contrast && (
+        <p className="measure mt-3 text-body text-muted-foreground">{aiScoring.contrast}</p>
+      )}
+      {aiScoring.note && (
+        <p className="measure mt-3 text-small text-muted-foreground">{aiScoring.note}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The university's own published statement, quoted, plus the dataset's
+ * comparison against the other programs. Rendered as a quotation and
+ * attributed so it reads as the school speaking, not as this site.
+ */
+function LookingForDetail({ lookingFor }: { lookingFor: LookingFor }) {
+  return (
+    <div className="mt-10">
+      <h3 className="text-h3 text-foreground">What the program says it looks for</h3>
+      <blockquote className="measure mt-3 border-l-2 border-silver-light pl-4 text-body text-foreground">
+        {lookingFor.verbatim}
+      </blockquote>
+      {lookingFor.contrast && (
+        <p className="measure mt-4 text-small text-muted-foreground">
+          {lookingFor.contrast}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── Computed relationships ──────────────────────────────────────────────── */
+
+function RelatedSection({ program }: { program: Program }) {
+  const gatekeeping = sameGatekeeping(program);
+  const category = sameCategoryElsewhere(program);
+  const collisions = dateCollisions(program);
+
+  return (
+    <div className="flex flex-col gap-10">
+      {gatekeeping.length > 0 && (
+        <div>
+          <p className="text-label label-mono text-silver">Same gatekeeping model</p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {gatekeeping.map(({ program: other, href }) => (
+              <RelatedLink key={other.id} href={href} name={other.name} school={other.school} />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {category.length > 0 && (
+        <div>
+          <p className="text-label label-mono text-silver">
+            Same field, different school
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {category.map(({ program: other, href }) => (
+              <RelatedLink key={other.id} href={href} name={other.name} school={other.school} />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {collisions.length > 0 && (
+        <div>
+          <p className="text-label label-mono text-silver">
+            Confirmed dates within 14 days
+          </p>
+          {/* Grouped by this program's date. Ungrouped, a program with eight
+              confirmed dates repeated its own date on every row — Jan 15 is a
+              shared OUAC deadline, so the pairs run to dozens. Both dates and
+              both program names, and nothing else: no advice about which to
+              do first, and only dates the universities have confirmed. */}
+          <div className="mt-3 flex flex-col gap-6">
+            {[...new Map(collisions.map((c) => [c.own.date, c.own])).values()].map((own) => (
+              <div key={own.date}>
+                <div className="flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2">
+                  <time dateTime={own.date} className="data text-small font-semibold text-foreground">
+                    {formatDate(own.date)}
+                  </time>
+                  <span className="text-small text-muted-foreground">{program.name}</span>
+                </div>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {collisions
+                    .filter((c) => c.own.date === own.date)
+                    .map((collision, index) => (
+                      <li key={index} className="flex flex-wrap items-baseline gap-x-3">
+                        <time
+                          dateTime={collision.other.date}
+                          className="data w-28 shrink-0 text-small text-foreground"
+                        >
+                          {formatDate(collision.other.date)}
+                        </time>
+                        <Link
+                          href={collision.href}
+                          className="rounded-sm text-small text-muted-foreground underline decoration-silver underline-offset-4 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                        >
+                          {collision.program.name} — {collision.program.school}
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RelatedLink({
+  href,
+  name,
+  school,
+}: {
+  href: string;
+  name: string;
+  school: string;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="group/rel inline-flex flex-wrap items-baseline gap-x-3 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+      >
+        <span className="text-body text-foreground underline decoration-silver underline-offset-4 transition-colors duration-150 group-hover/rel:decoration-silver-light motion-reduce:transition-none">
+          {name}
+        </span>
+        <span className="text-small text-muted-foreground">{school}</span>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * Fixed labels for absent fields. It never explains why something is missing
+ * and never says what the absence implies — the dataset records the absence
+ * and that is the entire claim.
+ */
+function NotPublishedSection({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => (
+        <li key={item} className="data text-small text-muted-foreground">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
 }
