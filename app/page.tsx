@@ -79,7 +79,7 @@ export default function Page() {
             {/* Leads with the reader's problem. No em dashes, no semicolons
                 doing an em dash's job, and no claim beyond the three the
                 brief allows. 34 words. */}
-            Every Ontario health, engineering and business program sets its own
+            Every Ontario health, engineering, business and kinesiology program sets its own
             deadlines, supplementary applications and admission averages. The official
             pages are often stale or contradict themselves. Everything here is checked
             against the university&apos;s own page, and dated.

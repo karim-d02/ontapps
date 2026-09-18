@@ -180,14 +180,27 @@ export const CATEGORIES: ProgramCategory[] = [
 /**
  * Display label for a category.
  *
- * The new data has no `categories` array and the legend does not cover them,
- * so these are derived mechanically from the id (underscores to spaces, first
- * letter capitalised). Nothing is invented: no wording is introduced that the
- * id does not already carry.
+ * The one place category labels are produced. The old data carried
+ * `categories: [{id, label}]` with human labels ("Health & Med"); the new file
+ * has no categories key at all, only the raw `category` string on each
+ * program. So the label is derived mechanically — underscores to spaces, each
+ * word capitalised — and nothing is invented: no wording is introduced that
+ * the id does not already carry.
+ *
+ * It lives here rather than in a component on purpose. A four-entry lookup
+ * table in the UI would be program data living in the UI, which AGENTS.md
+ * forbids, and it would silently omit a fifth category if one were ever added.
+ *
+ *   engineering     -> Engineering
+ *   business        -> Business
+ *   health_sciences -> Health Sciences
+ *   kinesiology     -> Kinesiology
  */
 export function getCategoryLabel(category: string): string {
-  const spaced = category.replace(/_/g, " ");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return category
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 export function getProgramsByCategory(category: ProgramCategory): Program[] {

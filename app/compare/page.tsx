@@ -130,7 +130,7 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       label: "Field",
       render: (program) => (
         <span className="text-small text-foreground">
-          {getCategoryLabel(program.category) ?? program.category}
+          {getCategoryLabel(program.category)}
         </span>
       ),
     },
