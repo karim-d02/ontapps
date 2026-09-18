@@ -324,3 +324,174 @@ The two warnings this work introduced were fixed.
 
 None added. `npx wait-on` was used once to poll the server during the smoke
 test; it is not in `package.json`.
+
+---
+
+# Fixups
+
+```
+ad904bf fixup: build /data-check — What universities get wrong
+e7fc2fe fixup: kinesiology is a new section, not three new rows
+8113bad fixup: landing page category grid for four categories
+d77b58b fixup: render grade_range_note when a program has no grade ranges
+31d1653 fixup: internal_note inside mixed claims, and optional verification
+e90d0af fixup: disambiguation pages for the two split URLs
+```
+
+All six done. `npm run build` green (52 static pages), `tsc --noEmit` clean,
+**46/46 smoke routes pass**, both data checksums still OK, `data/` and
+`AGENTS.md` untouched, tree clean, still on `new-schema`.
+
+## 1. Disambiguation pages — `e90d0af`
+
+One route pattern in `lib/split-programs.ts` serves both retired URLs; both
+return **200**, neither redirects. The page states the program was split and
+offers both successors through the existing `ProgramCard`, so each card already
+carries the gatekeeping badge, supp-app line, next deadline and OUAC codes. No
+recommendation and no meaningful ordering. Verified: iBioMed's card correctly
+shows its `undetermined` gatekeeping state rather than anything reassuring.
+
+Both are prerendered (52 pages, up from 50) and both are excluded from
+`sitemap.ts` — they already were, since it builds from `getAllPrograms()`, and
+an explicit filter now keeps that true if the generation changes shape.
+
+**One thing to confirm:** I also set `robots: noindex, follow` on them. The
+brief said they are "for inbound links, not for indexing", and sitemap exclusion
+alone does not prevent indexing; `follow` stays on so crawlers pass through to
+the two real pages. If you meant sitemap exclusion only, delete the `robots` key
+in `generateMetadata`.
+
+## 2. `internal_note` inside `mixed`, and optional `verification` — `31d1653`
+
+The filter now catches a claim when `claim_type === "internal_note"` **or** when
+`contains` includes it. `supplementary_applications[4].naming` is the one
+instance. **Consequence worth knowing:** that line ("U of T calls it a
+Supplemental Application…") now stops rendering in the Rotman supp-app details.
+That follows from the rule as specified; say the word if you want it exempted.
+`scripts/smoke.mjs` matches the widened rule and now reports
+`internal_note claims in data: 1`, with its text confirmed absent from every page.
+
+`verification` is now optional on `ClaimEnvelope`. Absent verification renders a
+**"Provenance unknown"** label and is styled as unofficial — never certified,
+and never silent, since silence is exactly how a certified claim renders. Six
+unguarded `.verification.status` reads were found and fixed (`lib/averages.ts`,
+`lib/relations.ts`, `components/check/prerequisite-checker.tsx`, and four in
+`components/claim.tsx`).
+
+Mixed claims are styled at the **weakest** type in `contains`, with every type
+surfaced in the label. Verified across all 14:
+
+| contains | styled as |
+|---|---|
+| official + community | community |
+| official + editorial | editorial |
+| official + third_party | third_party |
+| official + secondary_press | secondary_press |
+| editorial + community | editorial |
+| official + editorial + third_party + community *(comparisons[1])* | editorial |
+
+All four `comparisons` claims with no `verification` resolve to "Provenance
+unknown". `comparisons` itself remains unrendered, as instructed.
+
+## 3. `grade_range_note` with no ranges — `d77b58b`
+
+`mcmaster-engineering-i`'s note now renders under Averages as the explanation
+for the absence. Verified on all three programs with no `grade_ranges`: it shows
+on `mcmaster-engineering-i` and nothing is added for `mcmaster-ibiomed` or
+`mcmaster-bhsc`. No sentence was invented for those two.
+
+## 4. Landing page grid — `8113bad`
+
+**Chosen: two by two on phone and tablet, four across at `xl`**
+(`grid-cols-2 xl:grid-cols-4`).
+
+This is a hybrid of the two options offered, so here is the measurement behind
+it. At `md` (768px) the shell leaves 720px, which is **168px per card** across
+four columns once the three 16px gaps are removed, and roughly 128px of text
+inside the card padding — "Health Sciences" wraps and the count sentence runs to
+four lines. At `xl` the same arithmetic gives **286px**. `xl` is also this
+repo's own declared desktop breakpoint: `globals.css` calls 768 tablet and 1280
+desktop. Strictly four-across-from-`md`, or strictly two-by-two throughout, is a
+one-word change at that `className`.
+
+## 5. Kinesiology — `e7fc2fe`
+
+**Labels.** No component carried a hardcoded lookup table — labels already
+flowed through the single `getCategoryLabel` in `lib/data.ts`. It only needed
+proper title-casing, so `health_sciences` now renders **"Health Sciences"**
+rather than "Health sciences". Grep for the old bare ids `"health"`, `"eng"`,
+`"business"`: no hits. "Health & Med" appears nowhere in the repo.
+
+**Copy changed — three places, all list extensions, existing words left in
+place:**
+
+| File | Change |
+|---|---|
+| `app/page.tsx` hero | "health, engineering and business" → "health, engineering, business and kinesiology" |
+| `app/programs/page.tsx` description | same |
+| `app/layout.tsx` description | same |
+
+**Flag on those two descriptions.** Extending pushes the root `layout.tsx`
+description from **148 → 161 characters**, crossing the ~155 Google renders, and
+`/programs` from **172 → 185**, which was already over. Both are now factually
+correct but long. Tightening them is a rewrite, and wording is yours — I
+extended rather than rewrote, per your instruction.
+
+**Checked and NOT changed**, because already data-driven or category-free: both
+OG routes (the root one renders `{programs} programs · {universities}
+universities`, counted from the data at build time; neither names a category),
+the footer, `robots.ts`, and the `/programs` category filter, which enumerates
+`CATEGORIES` and so already offers all four. The "two or three programs" wording
+on `/compare` is the compare limit, not a category count.
+
+**Verified rather than changed:** `uoft-kinesiology` is the only one of the three
+with `supp_app_required: true` and renders "Required" with its statement of
+interest described; `waterloo-kinesiology` and `mcmaster-kinesiology` render
+"Not required" and carry the plain "No supplementary application" statement. The
+filter returns all three and the landing card reads "Kinesiology — 3 programs
+across 3 universities". No comparison-table content was duplicated by hand.
+
+## 6. `/data-check` — `ad904bf`
+
+Built. 30 records across the three in-scope types, grouped under three headings
+with stale pages first. Stats strip reads **30 logged · 25 unresolved · 14 with a
+recommendation**.
+
+The exclusion reasoning is written into the file so it is not quietly widened
+later, with `document_internal` called out specifically. Verified: K23
+(`document_internal`) does not appear on the page.
+
+Each record renders its statements as opposing positions, each attributed to
+`stated_by` and citing its own sources. `SourceList` was split out of
+`ClaimSources` so a statement cites through exactly the same path a claim does.
+A statement whose `claim_type` is not `official` never renders looking official.
+`guidance` gets the strongest treatment on the card; where it is absent the page
+says there is no resolved answer. Nothing picks a winner.
+
+**K04 renders as intended** — OUInfo's 2027 codes and the 403s on one side,
+McMaster's own IBEHS page still saying "MEH or MEI" on the other, both
+attributed and sourced, with "What to do" beneath.
+
+**Never rendered — 200 probes, zero hits:** `pdf_block_ids`, `log_ids`,
+`related_block_ids`, `guidance_block_ids` (the last two added to the data-layer
+strip alongside the first two) and `pdf_note` / `verification_note` /
+`corrections_note`.
+
+**Latent bug found and fixed while typing these records.** The program page's
+contradiction section rendered `contradiction.note` — a key these records do not
+have — so it displayed nothing at all. It now renders `guidance`, and the
+statement body reads the real `text` field instead of a non-existent `statement`
+field. That bug shipped in the original migration; it was invisible because the
+missing key simply rendered as nothing.
+
+## Smoke test
+
+```
+46 routes checked — 46 passed, 0 failed
+internal_note claims in data: 1 · pdf_block_ids: 1042 · log_ids: 99
+No internal_note text, pdf_block_id, log_id or document.json reference in any page.
+```
+
+46 = 44 from before plus the two disambiguation URLs. `shasum -a 256 -c
+data/.data-checksum` passes. Lint is unchanged: 37 errors, all still in
+`components/charts/**`, none in any file touched here.
