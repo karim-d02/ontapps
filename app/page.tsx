@@ -245,11 +245,17 @@ export default function Page() {
         className="mt-[var(--rhythm-section)] border-t border-line-strong pt-[var(--rhythm-section)]"
       >
         <SectionHeader level={2} label="03" title="Start here" />
-        <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {/* Four categories now, in a grid that was written for three. The
-              fourth card wraps to a second row. Left as-is deliberately: the
-              column count is a visual decision, and this migration does not
-              make those. Flagged in MIGRATION-REPORT.md. */}
+        {/* Four categories, so: two by two on phone and tablet, four across on
+            desktop. Four across at `md` was measured rather than guessed — at
+            768px the shell leaves 720px, which is 168px per card once the three
+            gaps are taken out, and roughly 128px of text inside the card
+            padding. "Health Sciences" wraps at that width and the count
+            sentence runs to four lines. At `xl` the same maths gives 286px,
+            which is comfortable. `xl` is also this repo's own declared desktop
+            breakpoint (globals.css calls 768 tablet and 1280 desktop).
+            If you want strictly four-across-from-md or strictly two-by-two
+            throughout, it is a one-word change here. */}
+        <ul className="mt-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
           {CATEGORIES.map((category) => {
             const inCategory = programs.filter((p) => p.category === category);
             const schools = new Set(inCategory.map((p) => p.university_id)).size;
