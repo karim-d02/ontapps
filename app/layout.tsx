@@ -10,7 +10,7 @@ import { PageTransition } from "@/components/page-transition"
 import { PointerLight } from "@/components/pointer-light"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
-import { getAllPrograms, getSchoolSlug } from "@/lib/programs"
+import { getAllPrograms } from "@/lib/data"
 import { cn } from "@/lib/utils";
 
 // The variable names deliberately differ from the Tailwind theme keys
@@ -93,9 +93,9 @@ export default function RootLayout({
     ...getAllPrograms().map((program) => ({
       id: program.id,
       name: program.name,
-      school: program.school,
-      href: `/programs/${getSchoolSlug(program.school)}/${program.id}`,
-      codes: program.ouacCodes.map((code) => code.code),
+      school: program.university,
+      href: `/programs/${program.university_id}/${program.id}`,
+      codes: program.ouac_codes.map((code) => code.code),
       kind: "program" as const,
     })),
     { id: "page-programs", name: "All programs", school: "Browse", href: "/programs", codes: [], kind: "page" as const },

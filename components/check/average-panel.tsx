@@ -4,13 +4,12 @@ import {
   adjustmentWarning,
   calculateAverage,
   eligibility,
-  type ClassifiedAverage,
+  type MinimumKind,
 } from "@/lib/averages";
 import type { CourseState } from "@/lib/prerequisites";
-import { getSchoolSlug } from "@/lib/programs";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import type { Program } from "@/types/program";
+import type { Program } from "@/types/schema";
 
 /**
  * The optional average view.
@@ -23,13 +22,11 @@ import type { Program } from "@/types/program";
  * applications they're entitled to make.
  */
 
-const KIND_LABEL: Record<ClassifiedAverage["kind"], string> = {
-  floor: "Published minimum",
-  softFloor: "Stated minimum, no exact figure",
+const KIND_LABEL: Record<MinimumKind, string> = {
+  averageFloor: "Published minimum",
   courseFloor: "Per-course minimum",
-  guideline: "Guideline, not a cutoff",
-  noCutoff: "No cutoff published",
-  community: "Self-reported",
+  unstructured: "Published figure, not a single cutoff",
+  none: "No cutoff published",
 };
 
 export function AveragePanel({
@@ -96,13 +93,13 @@ function ProgramAverage({
         <div className="min-w-0">
           <h3 className="text-h3 font-semibold text-foreground">
             <Link
-              href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+              href={`/programs/${program.university_id}/${program.id}`}
               className="rounded-sm outline-none transition-colors duration-150 hover:text-silver-light focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background motion-reduce:transition-none"
             >
               {program.name}
             </Link>
           </h3>
-          <p className="mt-1 text-small text-muted-foreground">{program.school}</p>
+          <p className="mt-1 text-small text-muted-foreground">{program.university}</p>
         </div>
 
         {/* The only place a verdict is ever rendered, and only against a
@@ -173,25 +170,55 @@ function ProgramAverage({
             Your calculated average is not your Waterloo average
           </p>
           <p className="measure mt-2 text-small text-foreground">{adjustment}</p>
-          {program.adjustmentFactor?.note && (
-            <p className="measure mt-2 text-small text-muted-foreground">
-              {program.adjustmentFactor.note}
-            </p>
-          )}
         </div>
       )}
 
-      {/* Every published figure, each labelled with what kind of number it is. */}
+      {/* The published minimum, labelled with what kind of number it is, then
+          the competitiveness ranges as prose. The two are never merged. */}
       <ul className="mt-5 flex flex-col gap-3 border-t border-line pt-4">
-        {[...verdict.floors, ...verdict.context].map((item, index) => (
-          <FigureRow
-            key={index}
-            item={item}
-            average={result.average}
-            gated={verdict.floors.includes(item)}
-          />
+        <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <span className="min-w-0">
+            <span className="data text-small text-foreground">
+              {verdict.minimum.claim.text}
+            </span>
+            <span className="block text-label label-mono text-silver">
+              {KIND_LABEL[verdict.minimum.kind]}
+            </span>
+          </span>
+          {verdict.status === "met" || verdict.status === "below" ? (
+            <span
+              className={cn(
+                "data shrink-0 text-label uppercase",
+                verdict.status === "met"
+                  ? "font-bold text-silver-light"
+                  : "text-silver",
+              )}
+            >
+              {verdict.status === "met" ? "Met" : "Not met"}
+            </span>
+          ) : null}
+        </li>
+
+        {/* Prose ranges, exactly as written — never parsed into a number and
+            never turned into a pass/fail. */}
+        {verdict.ranges.map((range, index) => (
+          <li key={index} className="flex flex-col">
+            <span className="data text-small text-foreground">
+              {range.scope}: {range.range}
+            </span>
+            <span className="text-label label-mono text-silver">
+              {range.sourceLabel ? `${range.sourceLabel} · ` : ""}
+              competitiveness range, not a cutoff
+            </span>
+          </li>
         ))}
       </ul>
+
+      {verdict.rangeNote && (
+        <p className="measure mt-3 text-small text-muted-foreground">
+          {verdict.rangeNote.text}
+        </p>
+      )}
 
       {verdict.status === "noFloor" && result.average !== null && (
         <p className="measure mt-4 text-small text-foreground">
@@ -208,9 +235,9 @@ function ProgramAverage({
           <ul className="mt-3 flex flex-col gap-2">
             {verdict.community.map((item, index) => (
               <li key={index} className="text-small text-muted-foreground">
-                <span className="data text-foreground">{item.entry.figure}</span>
+                <span className="data text-foreground">{item.text}</span>
                 <span className="block text-label label-mono text-silver">
-                  {item.entry.source} · never used as a threshold here
+                  never used as a threshold here
                 </span>
               </li>
             ))}
@@ -221,42 +248,3 @@ function ProgramAverage({
   );
 }
 
-function FigureRow({
-  item,
-  average,
-  gated,
-}: {
-  item: ClassifiedAverage;
-  average: number | null;
-  gated: boolean;
-}) {
-  // A state is attached only to a numeric published floor with an average to
-  // compare it against. Everything else is shown as stated, with no verdict.
-  const met = gated && item.minimum !== null && average !== null ? average >= item.minimum : null;
-
-  return (
-    <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <span className="min-w-0">
-        <span className="data text-small text-foreground">{item.entry.figure}</span>
-        <span className="block text-label label-mono text-silver">
-          {item.entry.source} · {KIND_LABEL[item.kind]}
-        </span>
-        {item.basis && item.kind !== "floor" && (
-          <span className="measure block text-small text-muted-foreground">
-            {item.basis}
-          </span>
-        )}
-      </span>
-      {met !== null && (
-        <span
-          className={cn(
-            "data shrink-0 text-label uppercase",
-            met ? "font-bold text-silver-light" : "text-silver"
-          )}
-        >
-          {met ? "Met" : "Not met"}
-        </span>
-      )}
-    </li>
-  );
-}

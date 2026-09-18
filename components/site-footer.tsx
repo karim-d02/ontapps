@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { getMeta, getStaleOfficialPages } from "@/lib/programs";
-import { formatDate } from "@/lib/deadlines";
+import { getMeta, getStaleOfficialPages, getVerificationDate } from "@/lib/data";
 
 export function SiteFooter() {
   const meta = getMeta();
@@ -36,12 +35,16 @@ export function SiteFooter() {
         <dl className="col-span-12 flex flex-wrap gap-x-10 gap-y-4 sm:col-span-5 sm:justify-end">
           <div>
             <dt className="text-label label-mono text-silver">Cycle</dt>
-            <dd className="data mt-1 text-small text-foreground">{meta.cycle}</dd>
+            <dd className="data mt-1 text-small text-foreground">{meta.entry_cycle}</dd>
           </div>
           <div>
             <dt className="text-label label-mono text-silver">Verified</dt>
+            {/* The verification value is a RANGE ("2026-09-15/2026-09-17"),
+                not a single ISO date, so it is printed as given rather than
+                run through formatDate — and it is not wrapped in a <time>,
+                whose dateTime attribute this is not a valid value for. */}
             <dd className="data mt-1 text-small text-foreground">
-              <time dateTime={meta.verifiedOn}>{formatDate(meta.verifiedOn)}</time>
+              {getVerificationDate()}
             </dd>
           </div>
         </dl>

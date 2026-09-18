@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getAllPrograms, getSchoolSlug } from "@/lib/programs";
+import { getAllPrograms } from "@/lib/data";
 
 export const metadata = { title: "Page not found" };
 
@@ -27,15 +27,15 @@ export default function NotFound() {
           <Card key={program.id} as="li" interactive>
             <h2 className="text-h3 font-semibold text-foreground">
               <Link
-                href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+                href={`/programs/${program.university_id}/${program.id}`}
                 className="rounded-sm outline-none after:absolute after:inset-0 after:content-['']"
               >
                 {program.name}
               </Link>
             </h2>
-            <p className="mt-1 text-small text-muted-foreground">{program.school}</p>
+            <p className="mt-1 text-small text-muted-foreground">{program.university}</p>
             <p className="data mt-3 text-label text-silver">
-              {program.ouacCodes.map((code) => code.code).join(" ")}
+              {program.ouac_codes.map((code) => code.code).join(" ")}
             </p>
           </Card>
         ))}

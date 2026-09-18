@@ -15,9 +15,8 @@ import {
   type ProgramResult,
   type RequirementResult,
 } from "@/lib/prerequisites";
-import { getSchoolSlug } from "@/lib/programs";
 import { cn } from "@/lib/utils";
-import type { Program } from "@/types/program";
+import type { Program } from "@/types/schema";
 
 const VERDICT_LABEL = {
   meets: "Meets the course requirements",
@@ -292,7 +291,7 @@ export function PrerequisiteChecker({
 }
 
 function ResultCard({ result }: { result: ProgramResult }) {
-  const { program, verdict, results, floor, streamMissing } = result;
+  const { program, verdict, results, floor } = result;
 
   return (
     <Card as="li" interactive className="flex flex-col">
@@ -300,13 +299,13 @@ function ResultCard({ result }: { result: ProgramResult }) {
         <div className="min-w-0">
           <h3 className="text-h3 font-semibold text-foreground">
             <Link
-              href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+              href={`/programs/${program.university_id}/${program.id}`}
               className="rounded-sm outline-none after:absolute after:inset-0 after:content-['']"
             >
               {program.name}
             </Link>
           </h3>
-          <p className="mt-1 text-small text-muted-foreground">{program.school}</p>
+          <p className="mt-1 text-small text-muted-foreground">{program.university}</p>
         </div>
         {/* Weight, not colour: the verdict that matters most is the one set
             bold, and "meets" never shouts louder than the caveat under it. */}
@@ -319,8 +318,9 @@ function ResultCard({ result }: { result: ProgramResult }) {
       </div>
 
       {/* A minimum the program applies to every required course, stated at
-          program level rather than on the individual requirements. Western
-          Health Sci's 70% lives in courses.notes and was being ignored. */}
+          program level rather than on the individual requirements. In the new
+          schema this is structured: official_minimum.value.type is
+          "required_course_minimum" on exactly the two Western programs. */}
       {floor && (
         <p className="mt-4 text-small text-muted-foreground">
           <span className="text-label label-mono text-silver">Every required course </span>
@@ -337,21 +337,17 @@ function ResultCard({ result }: { result: ProgramResult }) {
 
       {/* The dataset's own note about this list — "MCV4U specifically. Med Sci
           does not accept MHF4U or MDM4U in its place" is exactly the kind of
-          thing a student needs and the checker used to drop on the floor. */}
-      {program.courses.notes && (
+          thing a student needs and the checker used to drop on the floor. It
+          now lives on the required_courses claim's verification note. */}
+      {program.required_courses.verification.note && (
         <p className="measure mt-4 border-l-2 border-silver pl-4 text-small text-muted-foreground">
-          {program.courses.notes}
+          {program.required_courses.verification.note}
         </p>
       )}
 
-      {/* McMaster's page covers two applications with two different lists. */}
-      {streamMissing.length > 0 && (
-        <p className="measure mt-4 text-small text-muted-foreground">
-          <span className="text-label label-mono text-silver">iBioMed stream </span>
-          also needs {streamMissing.join(", ")} — it&apos;s a separate application with
-          its own list.
-        </p>
-      )}
+      {/* The old iBioMed stream line is gone: iBioMed is its own program in
+          the new schema, with its own required-course list, so it is evaluated
+          as a program in its own right rather than as a footnote here. */}
 
       <p className="mt-5 flex items-center gap-1 text-small text-silver">
         Full requirements, deadlines and traps

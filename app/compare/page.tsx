@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button";
 import { DateStamp } from "@/components/ui/date-stamp";
 import { Pill } from "@/components/ui/pill";
 import { SectionHeader } from "@/components/ui/section-header";
-import { resolveEntry, todayISO, type DatedItem } from "@/lib/deadlines";
+import { GatekeepingBadge } from "@/components/programs/gatekeeping-badge";
+import { nextDeadlineFor, resolveDeadline, todayISO } from "@/lib/deadlines";
+import { classifyOfficialMinimum, gradeRanges } from "@/lib/averages";
 import {
   getCategoryLabel,
-  getGatekeepingDescription,
+  getGatekeepingFor,
+  getGatekeepingModel,
   getProgramById,
-  getSchoolSlug,
-} from "@/lib/programs";
+} from "@/lib/data";
 import { cn } from "@/lib/utils";
-import type { GatekeepingModel, Program } from "@/types/program";
+import type { GatekeepingModelId, Program } from "@/types/schema";
 
 export const revalidate = 3600;
 
@@ -23,12 +25,6 @@ export const metadata: Metadata = {
   description:
     "Two or three Ontario programs side by side — deadlines, prerequisites, averages, gatekeeping model and supplementary application.",
   alternates: { canonical: "/compare" },
-};
-
-const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
-  atTheDoor: "At the door",
-  twoYearsIn: "Two years in",
-  hybrid: "Hybrid",
 };
 
 const MAX_COMPARE = 3;
@@ -95,31 +91,35 @@ export default async function ComparePage({
   );
 }
 
-/** The soonest confirmed date still ahead, per program. */
-function nextDate(program: Program, today: string): DatedItem | null {
-  const dated = program.timeline
-    .map((entry) => resolveEntry(entry, today))
-    .filter((item) => item.date !== null)
-    .sort((a, b) => a.date!.localeCompare(b.date!));
-  return dated.find((item) => item.daysRemaining! >= 0) ?? null;
-}
-
-/** Each gatekeeping model present, explained once. */
+/** Each gatekeeping model present, explained once. Wording from the data. */
 function GatekeepingLegend({ programs }: { programs: Program[] }) {
-  const models = [...new Set(programs.map((program) => program.gatekeeping))];
+  const models = [
+    ...new Set(
+      programs
+        .map((program) => getGatekeepingFor(program.id)?.model)
+        .filter((model): model is GatekeepingModelId => Boolean(model)),
+    ),
+  ];
 
   return (
     <dl className="mt-10 hidden gap-x-[var(--gutter)] gap-y-4 border-t border-line pt-6 md:grid md:grid-cols-2">
-      {models.map((model) => (
-        <div key={model} className="flex gap-4">
-          <dt className="shrink-0">
-            <Pill>{GATEKEEPING_LABELS[model]}</Pill>
-          </dt>
-          <dd className="text-small text-muted-foreground">
-            {getGatekeepingDescription(model)}
-          </dd>
-        </div>
-      ))}
+      {models.map((model) => {
+        const info = getGatekeepingModel(model);
+        if (!info) return null;
+        return (
+          <div key={model} className="flex gap-4">
+            <dt className="shrink-0">
+              <Pill tone={model === "undetermined" ? "muted" : "default"}>
+                {info.label}
+              </Pill>
+            </dt>
+            <dd className="text-small text-muted-foreground">
+              {info.summary}
+              <span className="ml-2 text-label label-mono text-silver">analysis</span>
+            </dd>
+          </div>
+        );
+      })}
     </dl>
   );
 }
@@ -140,11 +140,7 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       // copies of one fact eating a third of the screen — it's stated once in
       // the legend under the grid instead.
       label: "Gatekeeping",
-      render: (program) => (
-        <Pill title={getGatekeepingDescription(program.gatekeeping)}>
-          {GATEKEEPING_LABELS[program.gatekeeping]}
-        </Pill>
-      ),
+      render: (program) => <GatekeepingBadge programId={program.id} />,
     },
     {
       label: "Supp app",
@@ -152,39 +148,34 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
         <span
           className={cn(
             "data text-body",
-            program.suppApp.required
+            program.supp_app_required
               ? "font-bold text-foreground"
               : "font-medium text-muted-foreground"
           )}
         >
-          {program.suppApp.required ? "Required" : "Not required"}
+          {program.supp_app_required ? "Required" : "Not required"}
         </span>
       ),
     },
     {
       label: "Supp app deadline",
       render: (program) => {
-        if (!program.suppApp.required) {
+        if (!program.supp_app_required) {
           return <span className="text-small text-muted-foreground">—</span>;
         }
-        const deadline = program.suppApp.deadline;
-        const item: DatedItem =
-          deadline.confirmed && deadline.date
-            ? resolveEntry(
-                { date: deadline.date, label: deadline.text, critical: true, confirmed: true },
-                today
-              )
-            : {
-                state: "unpublished",
-                date: null,
-                daysRemaining: null,
-                label: deadline.text,
-                critical: true,
-              };
+        // Only a row the data marks `is_deadline` may show a countdown. A row
+        // whose date is not published shows its own date_text instead.
+        const row = program.deadlines.find((entry) => /supp/i.test(entry.key));
+        if (!row) {
+          return <Pill>Not published</Pill>;
+        }
+        const item = resolveDeadline(row, today);
         return (
           <>
             <DateStamp item={item} size="sm" />
-            <p className="mt-2 text-small text-muted-foreground">{deadline.text}</p>
+            {item.dateText && (
+              <p className="mt-2 text-small text-muted-foreground">{item.dateText}</p>
+            )}
           </>
         );
       },
@@ -192,7 +183,7 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
     {
       label: "Next date",
       render: (program) => {
-        const next = nextDate(program, today);
+        const next = nextDeadlineFor(program, today);
         return next ? (
           <>
             <DateStamp item={next} size="sm" />
@@ -207,9 +198,14 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       label: "Required courses",
       render: (program) => (
         <ul className="flex flex-col gap-1.5">
-          {program.courses.required.map((course, index) => (
+          {(program.required_courses.value ?? []).map((course, index) => (
             <li key={index} className="data text-small text-foreground">
-              {course}
+              {course.course}
+              {course.minimum_grade !== null && (
+                <span className="ml-2 text-label label-mono text-silver">
+                  min {course.minimum_grade}%
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -218,34 +214,44 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
     {
       label: "Averages",
       render: (program) => {
-        const official = program.averages.filter((average) => average.type === "official");
-        const community = program.averages.filter((average) => average.type === "community");
+        const minimum = classifyOfficialMinimum(program);
+        const ranges = gradeRanges(program);
+        const community = program.community_competitiveness;
         return (
           <>
-            {official.length > 0 ? (
-              <ul className="flex flex-col gap-2">
-                {official.map((average, index) => (
-                  <li key={index}>
-                    <span className="data text-small text-foreground">{average.figure}</span>
-                    <span className="block text-label label-mono text-silver">
-                      {average.source}
+            {minimum.kind === "none" ? (
+              <Pill>No published cutoff</Pill>
+            ) : (
+              <span className="data text-small text-foreground">
+                {minimum.claim.text}
+              </span>
+            )}
+
+            {/* Prose ranges, never merged with the published minimum and never
+                parsed into numbers. */}
+            {ranges.length > 0 && (
+              <ul className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
+                {ranges.map((range, index) => (
+                  <li key={index} className="text-small text-muted-foreground">
+                    <span className="text-label label-mono text-silver">
+                      {range.scope} ·{" "}
                     </span>
+                    {range.range}
                   </li>
                 ))}
               </ul>
-            ) : (
-              <Pill>Not published</Pill>
             )}
+
             {/* Community figures stay subordinate here too: smaller, after the
                 official ones, and always carrying the qualifier. */}
             {community.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
-                {community.map((average, index) => (
+                {community.map((figure, index) => (
                   <li key={index} className="text-small text-muted-foreground">
                     <span className="text-label label-mono text-silver">
-                      Self-reported ·{" "}
+                      Applicant-reported ·{" "}
                     </span>
-                    {average.figure}
+                    {figure.text}
                   </li>
                 ))}
               </ul>
@@ -255,13 +261,13 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       },
     },
     {
-      label: "Seats",
+      label: "Enrolment",
       render: (program) =>
-        program.seats === null ? (
+        program.enrollment === null ? (
           <Pill>Not published</Pill>
         ) : (
           <span className="data text-body text-foreground">
-            {program.seats.toLocaleString("en-CA")}
+            {program.enrollment.text}
           </span>
         ),
     },
@@ -269,7 +275,7 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       label: "OUAC",
       render: (program) => (
         <span className="data text-small text-foreground">
-          {program.ouacCodes.map((code) => code.code).join(" ")}
+          {program.ouac_codes.map((code) => code.code).join(" ")}
         </span>
       ),
     },
@@ -287,10 +293,10 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
         <div />
         {programs.map((program) => (
           <div key={program.id} className="border-b border-line-strong pb-4">
-            <p className="text-label label-mono text-silver">{program.school}</p>
+            <p className="text-label label-mono text-silver">{program.university}</p>
             <h2 className="mt-2 text-h3 font-semibold text-foreground">
               <Link
-                href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+                href={`/programs/${program.university_id}/${program.id}`}
                 className="rounded-sm outline-none transition-colors duration-150 hover:text-silver-light focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background motion-reduce:transition-none"
               >
                 {program.name}
@@ -318,10 +324,10 @@ function ComparisonGrid({ programs, today }: { programs: Program[]; today: strin
       <div className="flex flex-col gap-10 md:hidden">
         {programs.map((program) => (
           <section key={program.id}>
-            <p className="text-label label-mono text-silver">{program.school}</p>
+            <p className="text-label label-mono text-silver">{program.university}</p>
             <h2 className="mt-2 text-h2 text-foreground">
               <Link
-                href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+                href={`/programs/${program.university_id}/${program.id}`}
                 className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {program.name}

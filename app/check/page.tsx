@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { PrerequisiteChecker } from "@/components/check/prerequisite-checker";
 import { SectionHeader } from "@/components/ui/section-header";
 import { collectCourseCodes } from "@/lib/prerequisites";
-import { getAllPrograms } from "@/lib/programs";
+import { getAllPrograms } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Check my courses",

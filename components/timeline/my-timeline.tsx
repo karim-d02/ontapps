@@ -8,10 +8,9 @@ import { useStoredIds } from "@/hooks/use-stored-ids";
 
 import { DateStamp } from "@/components/ui/date-stamp";
 import { Pill } from "@/components/ui/pill";
-import { resolveEntry, type DatedItem } from "@/lib/deadlines";
-import { getSchoolSlug } from "@/lib/programs";
+import { resolveDeadline, type DatedItem } from "@/lib/deadlines";
 import { cn } from "@/lib/utils";
-import type { Program } from "@/types/program";
+import type { Program } from "@/types/schema";
 
 const STORAGE_KEY = "ontapps:my-programs";
 
@@ -42,7 +41,9 @@ export function MyTimeline({ programs, today }: { programs: Program[]; today: st
     const chosen = programs.filter((program) => selected.includes(program.id));
     return chosen
       .flatMap((program) =>
-        program.timeline.map((entry) => ({ ...resolveEntry(entry, today), program }))
+        // Prior-cycle rows resolve with a null date and are dropped by the
+        // filter below, so a previous cycle can never appear on this timeline.
+        program.deadlines.map((entry) => ({ ...resolveDeadline(entry, today), program }))
       )
       .filter((entry): entry is DatedItem & { program: Program } => entry.date !== null)
       .sort((a, b) => a.date!.localeCompare(b.date!));
@@ -96,7 +97,7 @@ export function MyTimeline({ programs, today }: { programs: Program[]; today: st
                         {program.name}
                       </span>
                       <span className="block text-label label-mono text-silver">
-                        {program.school}
+                        {program.university}
                       </span>
                     </span>
                   </button>
@@ -168,28 +169,28 @@ function TimelineRow({ entry }: { entry: DatedItem & { program: Program } }) {
         "before:absolute before:top-1.5 before:-left-[4.5px] before:size-2 before:rounded-full before:ring-4 before:ring-background",
         entry.state === "imminent"
           ? "before:bg-silver-light"
-          : entry.critical
+          : entry.isDeadline
             ? "before:bg-silver"
             : "before:bg-silver-dark"
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
         <DateStamp item={entry} size="md" />
-        {entry.critical && <Pill>Critical</Pill>}
+        {entry.isDeadline && <Pill>Deadline</Pill>}
       </div>
       <p
         className={cn(
           "measure mt-2 text-body",
-          entry.critical ? "font-medium text-foreground" : "text-muted-foreground"
+          entry.isDeadline ? "font-medium text-foreground" : "text-muted-foreground"
         )}
       >
         {entry.label}
       </p>
       <Link
-        href={`/programs/${getSchoolSlug(entry.program.school)}/${entry.program.id}`}
+        href={`/programs/${entry.program.university_id}/${entry.program.id}`}
         className="mt-1.5 inline-block rounded-sm text-label label-mono text-silver outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
       >
-        {entry.program.name} — {entry.program.school}
+        {entry.program.name} — {entry.program.university}
       </Link>
     </li>
   );

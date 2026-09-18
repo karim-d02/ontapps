@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { MyTimeline } from "@/components/timeline/my-timeline";
 import { SectionHeader } from "@/components/ui/section-header";
 import { todayISO } from "@/lib/deadlines";
-import { getAllPrograms } from "@/lib/programs";
+import { getAllPrograms } from "@/lib/data";
 
 export const revalidate = 3600;
 

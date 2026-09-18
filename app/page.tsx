@@ -10,13 +10,13 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Universities, type UniversityEntry } from "@/components/universities";
 import { formatDateLong, nextUpcoming, todayISO } from "@/lib/deadlines";
 import {
+  CATEGORIES,
   getAllPrograms,
-  getCategories,
-  getSchools,
-  getSchoolSlug,
+  getCategoryLabel,
   getStaleOfficialPages,
-} from "@/lib/programs";
-import type { Category, Program, Trap } from "@/types/program";
+  getUniversities,
+} from "@/lib/data";
+import type { Claim, Program, ProgramCategory } from "@/types/schema";
 
 // The hero carries a live day count, so the static HTML is allowed to be at
 // most an hour stale. LiveDays corrects the rest on the client.
@@ -24,7 +24,6 @@ export const revalidate = 3600;
 
 export default function Page() {
   const programs = getAllPrograms();
-  const categories = getCategories();
   const staleOfficialPages = getStaleOfficialPages();
   const today = todayISO();
 
@@ -41,28 +40,23 @@ export default function Page() {
     "western-university": "western",
   };
 
-  const universities: UniversityEntry[] = getSchools().map((school) => {
-    const slug = getSchoolSlug(school);
-    return {
-      name: school,
-      href: `/programs/${slug}`,
-      logo: LOGO_FILE[slug] ?? slug,
-    };
-  });
+  const universities: UniversityEntry[] = getUniversities().map((university) => ({
+    name: university.name,
+    href: `/programs/${university.id}`,
+    logo: LOGO_FILE[university.id] ?? university.id,
+  }));
 
   // One trap per category, so the three cards span the whole site rather than
   // happening to be three from whichever program sorts first. Deterministic:
   // first program in the category, its first trap.
-  const featuredTraps = categories
-    .map((category) => {
-      const program = programs.find((p) => p.category === category.id);
-      const trap = program?.traps[0];
-      return program && trap ? { program, trap, category } : null;
-    })
-    .filter(
-      (entry): entry is { program: Program; trap: Trap; category: Category } =>
-        entry !== null
-    );
+  const featuredTraps = CATEGORIES.map((category) => {
+    const program = programs.find((p) => p.category === category);
+    const trap = program?.stream_traps[0];
+    return program && trap ? { program, trap, category } : null;
+  }).filter(
+    (entry): entry is { program: Program; trap: Claim; category: ProgramCategory } =>
+      entry !== null,
+  );
 
   return (
     <main className="shell">
@@ -158,7 +152,7 @@ export default function Page() {
                   Days to the next date
                 </dt>
                 <dd className="measure mt-2 text-small text-muted-foreground">
-                  {next.label} — {next.program.school}.
+                  {next.label} — {next.program.university}.
                 </dd>
               </>
             ) : (
@@ -179,9 +173,10 @@ export default function Page() {
       {/* ── Next up ──────────────────────────────────────────────────────── */}
       {next && (
         <Reveal as="section" className="border-t border-line-strong pt-[var(--rhythm-section)]">
-          {/* "Next up" rather than "the next deadline": the soonest dated entry
-              in the dataset is sometimes an opening date rather than a
-              deadline, and the label under it comes straight from the data. */}
+          {/* Only rows the data marks `is_deadline` reach this — opening
+              dates, decision windows and prior-cycle rows are excluded — so
+              this is genuinely the next deadline. The label comes from the
+              data. */}
           <SectionHeader level={2} label="01" title="Next up" />
           <div className="grid-12 mt-8">
             <div className="col-span-12 lg:col-span-8">
@@ -191,11 +186,11 @@ export default function Page() {
                 <time dateTime={next.date!}>{formatDateLong(next.date!)}</time>
               </p>
               <Link
-                href={`/programs/${getSchoolSlug(next.program.school)}/${next.program.id}`}
+                href={`/programs/${next.program.university_id}/${next.program.id}`}
                 className="group/next mt-8 inline-flex items-center gap-2 rounded-sm text-body font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               >
                 <span className="relative after:absolute after:inset-x-0 after:-bottom-1 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-150 after:content-[''] group-hover/next:after:scale-x-100 motion-reduce:after:transition-none">
-                  {next.program.name} — {next.program.school}
+                  {next.program.name} — {next.program.university}
                 </span>
                 <ArrowRight
                   aria-hidden
@@ -220,18 +215,24 @@ export default function Page() {
         <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {featuredTraps.map(({ program, trap, category }) => (
             <Card key={program.id} as="li" interactive className="flex flex-col">
-              <p className="text-label label-mono text-silver">{category.label}</p>
+              <p className="text-label label-mono text-silver">
+                {getCategoryLabel(category)}
+              </p>
+              {/* The new schema's traps carry only `text` — there is no title
+                  field to head the card with, and inventing one would be
+                  writing editorial copy. So the program names the card and the
+                  trap itself is the body. */}
               <h3 className="mt-3 text-h3 font-semibold text-foreground">
                 <Link
-                  href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+                  href={`/programs/${program.university_id}/${program.id}`}
                   className="rounded-sm outline-none after:absolute after:inset-0 after:content-['']"
                 >
-                  {trap.title}
+                  {program.short_name}
                 </Link>
               </h3>
-              <p className="mt-2 text-small text-muted-foreground">{trap.body}</p>
+              <p className="mt-2 text-small text-muted-foreground">{trap.text}</p>
               <p className="mt-auto pt-6 text-small text-silver">
-                {program.name} — {program.school}
+                {program.name} — {program.university}
               </p>
             </Card>
           ))}
@@ -245,18 +246,22 @@ export default function Page() {
       >
         <SectionHeader level={2} label="03" title="Start here" />
         <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {categories.map((category) => {
-            const inCategory = programs.filter((p) => p.category === category.id);
-            const schools = new Set(inCategory.map((p) => p.school)).size;
+          {/* Four categories now, in a grid that was written for three. The
+              fourth card wraps to a second row. Left as-is deliberately: the
+              column count is a visual decision, and this migration does not
+              make those. Flagged in MIGRATION-REPORT.md. */}
+          {CATEGORIES.map((category) => {
+            const inCategory = programs.filter((p) => p.category === category);
+            const schools = new Set(inCategory.map((p) => p.university_id)).size;
             return (
-              <Card key={category.id} as="li" interactive className="flex flex-col">
+              <Card key={category} as="li" interactive className="flex flex-col">
                 <p className="data text-metric text-foreground">{inCategory.length}</p>
                 <h3 className="mt-3 text-h3 font-semibold text-foreground">
                   <Link
-                    href={`/programs?category=${category.id}`}
+                    href={`/programs?category=${category}`}
                     className="rounded-sm outline-none after:absolute after:inset-0 after:content-['']"
                   >
-                    {category.label}
+                    {getCategoryLabel(category)}
                   </Link>
                 </h3>
                 <p className="mt-2 text-small text-muted-foreground">
