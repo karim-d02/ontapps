@@ -355,21 +355,19 @@ Both are prerendered (52 pages, up from 50) and both are excluded from
 `sitemap.ts` — they already were, since it builds from `getAllPrograms()`, and
 an explicit filter now keeps that true if the generation changes shape.
 
-**One thing to confirm:** I also set `robots: noindex, follow` on them. The
-brief said they are "for inbound links, not for indexing", and sitemap exclusion
-alone does not prevent indexing; `follow` stays on so crawlers pass through to
-the two real pages. If you meant sitemap exclusion only, delete the `robots` key
-in `generateMetadata`.
+They also carry `robots: noindex, follow` — sitemap exclusion alone does not
+prevent indexing, and `follow` passes crawlers through to the two real pages.
+**Confirmed as intended; keeping it.**
 
 ## 2. `internal_note` inside `mixed`, and optional `verification` — `31d1653`
 
-The filter now catches a claim when `claim_type === "internal_note"` **or** when
-`contains` includes it. `supplementary_applications[4].naming` is the one
-instance. **Consequence worth knowing:** that line ("U of T calls it a
-Supplemental Application…") now stops rendering in the Rotman supp-app details.
-That follows from the rule as specified; say the word if you want it exempted.
-`scripts/smoke.mjs` matches the widened rule and now reports
-`internal_note claims in data: 1`, with its text confirmed absent from every page.
+> **Superseded by `6f3a50f` — see Fixups round 2, item 3.** The filter was
+> widened to `contains` here and has since been narrowed back to `claim_type`
+> only, with a REVIEW surface in the smoke test instead. The rest of this entry
+> (optional `verification`, mixed-claim weakest-type styling) still stands.
+
+The filter was widened to catch a claim when `claim_type === "internal_note"`
+**or** when `contains` includes it, which suppressed the Rotman naming line.
 
 `verification` is now optional on `ClaimEnvelope`. Absent verification renders a
 **"Provenance unknown"** label and is styled as unofficial — never certified,
@@ -495,3 +493,65 @@ No internal_note text, pdf_block_id, log_id or document.json reference in any pa
 46 = 44 from before plus the two disambiguation URLs. `shasum -a 256 -c
 data/.data-checksum` passes. Lint is unchanged: 37 errors, all still in
 `components/charts/**`, none in any file touched here.
+
+---
+
+# Fixups, round 2
+
+```
+6f3a50f fixup: narrow internal_note filter to claim_type, add a REVIEW surface
+b40147e fixup: replace the two meta descriptions
+```
+
+Build green (52 static pages), typecheck clean, **46/46 smoke routes pass**,
+checksums OK, tree clean, still on `new-schema`.
+
+## 1. `noindex` on the disambiguation pages — no change
+
+Confirmed as the right inference and kept. The round-1 entry above is updated so
+it no longer reads as an open question.
+
+## 2. Meta descriptions — `b40147e`
+
+Supplied wording, used verbatim.
+
+| | Before | After |
+|---|---|---|
+| `app/layout.tsx` | 161 | **150** |
+| `/programs` | 185 | **116** |
+
+Both now sit inside the ~155 characters Google renders; `/programs` had been
+over even before the kinesiology extension. The second description in
+`layout.tsx` (the openGraph one) names no categories and was left alone.
+
+## 3. `internal_note` filter narrowed — `6f3a50f`
+
+The data layer filters on `claim_type === "internal_note"` only; `contains` is
+no longer part of the test. **The Rotman naming line is restored** — verified
+rendering on `/programs/university-of-toronto/uoft-rotman-commerce`.
+
+Your reasoning is recorded next to the guard rather than only in this report, so
+the next person who notices the shape does not re-widen it: `contains` records
+what the original PDF block combined, not what survived into `text`; the
+preparation pass already separated them, so filtering on it discards content
+that has already been cleaned.
+
+The guard is not simply dropped. `scripts/smoke.mjs` now walks the data with
+path tracking and prints a **REVIEW** block — not a failure, and it does not
+affect the exit code, which stays 0:
+
+```
+46 routes checked — 46 passed, 0 failed
+internal_note claims in data: 0 · pdf_block_ids: 1042 · log_ids: 99
+
+REVIEW (1) — claims whose `contains` lists internal_note.
+These are published. `contains` describes the original PDF block, not the
+cleaned text. Read each one and confirm it is still safe to publish:
+  supplementary_applications[4].naming
+    claim_type: mixed · contains: official, internal_note
+    text: U of T calls it a Supplemental Application (Queen's and McMaster say "Supplementary").
+```
+
+If a future data update adds another, it surfaces for a human rather than being
+silently published — or silently dropped, which is what a `contains` filter
+would have done to already-cleaned content.
