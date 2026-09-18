@@ -555,3 +555,29 @@ cleaned text. Read each one and confirm it is still safe to publish:
 If a future data update adds another, it surfaces for a human rather than being
 silently published — or silently dropped, which is what a `contains` filter
 would have done to already-cleaned content.
+
+## 4. `/data-check` — two immaterial records demoted — `dba266d`
+
+K13 (U of T Engineering assessment fee, $43.86 vs $45) and K14 (Rotman Commerce
+supplemental fee, $52 vs $51) now sit in a collapsed **"Minor discrepancies"**
+section at the bottom of the page, below the three type sections.
+
+Selected by an **explicit id list** held next to the type filter in
+`app/data-check/page.tsx`, with a comment naming both amounts and the reasoning.
+Not a pattern match on "fee" or on a dollar sign — that would also bury a future
+fee contradiction with a gap that matters, and it would do it silently. A new
+record shows in the main sections until someone adds its id to the list.
+
+**Counts are unchanged**: the stats strip still reads 30 logged · 25 unresolved ·
+14 with a recommendation. Both records are still on the page, just further down
+it. Verified in the rendered markup: **28 in the main sections, 2 inside the
+disclosure, 30 total.**
+
+Rendering inside the disclosure is the same `ContradictionRecord` component as
+everywhere else — statements attributed, sources cited. Both carry
+`guidance: null`, so they show the "no resolved answer" line rather than an
+invented one.
+
+Worth knowing: the two sat in **different** type groups (K13
+`official_vs_official`, K14 `official_stale_page`), so those sections now show 17
+and 6 records rather than 18 and 7.
