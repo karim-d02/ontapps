@@ -83,7 +83,7 @@ function readCourseMinimums(value: Record<string, unknown>): CourseMinimum[] {
  */
 export function classifyOfficialMinimum(program: Program): OfficialMinimumView {
   const claim = program.official_minimum;
-  const contested = claim.verification.status === "contradiction";
+  const contested = claim.verification?.status === "contradiction";
   const value = claim.value;
 
   if (value === null || typeof value !== "object") {

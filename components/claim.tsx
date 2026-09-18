@@ -27,41 +27,104 @@ function humanise(id: string): string {
 }
 
 /** The only status that may render with no qualifier at all. */
-function isCertified(status: VerificationStatus): boolean {
+function isCertified(status: VerificationStatus | undefined): boolean {
+  // Absent verification is NOT certified. A missing field is unknown
+  // provenance, and unknown never renders as though it had been checked.
   return status === "certified";
+}
+
+/**
+ * Claim types ordered strongest to weakest.
+ *
+ * "Weakest" means least authoritative, and the order exists for one purpose: a
+ * `mixed` claim is rendered at the weakest type it contains, so combining an
+ * official statement with a community one can never make the community half
+ * look official. Understating is safe here; overstating is not.
+ *
+ * internal_note is absent because it is filtered at the data layer and never
+ * reaches a component.
+ */
+const CLAIM_TYPE_STRENGTH: string[] = [
+  "official",
+  "vendor",
+  "secondary_press",
+  "third_party",
+  "community",
+  "editorial",
+];
+
+/** The types a claim actually speaks with. A mixed claim lists several. */
+function claimTypesOf(claim: ClaimEnvelope): string[] {
+  if (claim.claim_type === "mixed" && Array.isArray(claim.contains)) {
+    const contained = claim.contains.filter(
+      (type) => type !== "internal_note",
+    );
+    if (contained.length > 0) return contained;
+  }
+  return [claim.claim_type];
+}
+
+/** The weakest type present — what the claim is styled as. */
+function effectiveClaimType(claim: ClaimEnvelope): string {
+  const types = claimTypesOf(claim);
+  let weakest = types[0];
+  let rank = -1;
+  for (const type of types) {
+    const index = CLAIM_TYPE_STRENGTH.indexOf(type);
+    // An unrecognised type sorts weakest: it is not known to be official.
+    const score = index === -1 ? CLAIM_TYPE_STRENGTH.length : index;
+    if (score > rank) {
+      rank = score;
+      weakest = type;
+    }
+  }
+  return weakest;
 }
 
 /** Claim types that must never be presented as official. */
 function isUnofficialVoice(claimType: string): boolean {
-  return (
-    claimType === "community" ||
-    claimType === "third_party" ||
-    claimType === "secondary_press"
-  );
+  return claimType !== "official" && claimType !== "vendor";
 }
 
 export function ClaimQualifier({ claim }: { claim: ClaimEnvelope }) {
-  const showStatus = !isCertified(claim.verification.status);
-  const showType = claim.claim_type !== "official";
+  const status = claim.verification?.status;
+  const types = claimTypesOf(claim);
 
-  if (!showStatus && !showType) return null;
+  // Every type in a mixed claim is surfaced, not just the one it is styled as,
+  // so a reader can see it is part official and part something else.
+  const showTypes = types.filter((type) => type !== "official");
+  // No verification field at all: say so rather than saying nothing, because
+  // saying nothing is how a certified claim renders.
+  const unknownProvenance = claim.verification === undefined;
+  const showStatus = !unknownProvenance && !isCertified(status);
+
+  if (showTypes.length === 0 && !showStatus && !unknownProvenance) return null;
 
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 align-middle">
-      {showType && (
+      {showTypes.map((type) => (
+        <span
+          key={type}
+          className="text-label label-mono font-normal text-silver"
+          title={getClaimTypeLabel(type)}
+        >
+          {humanise(type)}
+        </span>
+      ))}
+      {showStatus && status && (
         <span
           className="text-label label-mono font-normal text-silver"
-          title={getClaimTypeLabel(claim.claim_type)}
+          title={getVerificationStatusLabel(status)}
         >
-          {humanise(claim.claim_type)}
+          {humanise(status)}
         </span>
       )}
-      {showStatus && (
+      {unknownProvenance && (
         <span
           className="text-label label-mono font-normal text-silver"
-          title={getVerificationStatusLabel(claim.verification.status)}
+          title="This claim carries no verification record, so how it was checked is unknown."
         >
-          {humanise(claim.verification.status)}
+          Provenance unknown
         </span>
       )}
     </span>
@@ -155,7 +218,11 @@ export function Claim({
   const body = children ?? claim.text;
   if (body === undefined || body === null || body === "") return null;
 
-  const unofficial = isUnofficialVoice(claim.claim_type);
+  // Styled at the WEAKEST type a mixed claim contains, so the official half
+  // of a mixed claim can never lend its weight to the rest.
+  const unofficial =
+    isUnofficialVoice(effectiveClaimType(claim)) ||
+    claim.verification === undefined;
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -176,7 +243,7 @@ export function Claim({
       )}
 
       {/* A verification note explains why a status is what it is. */}
-      {claim.verification.note && (
+      {claim.verification?.note && (
         <p className="measure text-small text-muted-foreground">
           {claim.verification.note}
         </p>
@@ -190,7 +257,9 @@ export function Claim({
 /** Qualifier + conflict marker on one row. Useful when the body is bespoke. */
 export function ClaimMarkers({ claim }: { claim: ClaimEnvelope }) {
   const hasQualifier =
-    !isCertified(claim.verification.status) || claim.claim_type !== "official";
+    claim.verification === undefined ||
+    !isCertified(claim.verification.status) ||
+    claim.claim_type !== "official";
   const hasConflict = claim.contradiction_ids.length > 0;
   if (!hasQualifier && !hasConflict) return null;
 

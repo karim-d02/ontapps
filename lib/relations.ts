@@ -170,7 +170,7 @@ export function notPublished(program: Program): string[] {
   // cycle. Read off the verification status rather than off the missing date,
   // because the two are different statements.
   const unpublished = program.deadlines.some(
-    (deadline) => deadline.verification.status === "not_yet_published",
+    (deadline) => deadline.verification?.status === "not_yet_published",
   );
   if (unpublished) out.push("Some dates: not yet published for this cycle");
 

@@ -339,7 +339,7 @@ function ResultCard({ result }: { result: ProgramResult }) {
           does not accept MHF4U or MDM4U in its place" is exactly the kind of
           thing a student needs and the checker used to drop on the floor. It
           now lives on the required_courses claim's verification note. */}
-      {program.required_courses.verification.note && (
+      {program.required_courses.verification?.note && (
         <p className="measure mt-4 border-l-2 border-silver pl-4 text-small text-muted-foreground">
           {program.required_courses.verification.note}
         </p>

@@ -91,7 +91,13 @@ export interface ClaimVerification {
  */
 export interface ClaimEnvelope {
   claim_type: ClaimType;
-  verification: ClaimVerification;
+  /**
+   * Optional. Four `mixed` claims in `comparisons` carry no verification field
+   * at all, so reading `.status` off this unguarded throws the moment anything
+   * renders them. When it is absent the provenance is unknown, and unknown is
+   * never rendered as certified or as anything reassuring.
+   */
+  verification?: ClaimVerification;
   /** Keys into the top-level `sources` object. */
   sources: string[];
   contradiction_ids: string[];

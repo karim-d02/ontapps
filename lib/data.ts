@@ -43,12 +43,26 @@ import type {
 // means no component can leak them, by construction, rather than by every
 // component remembering not to.
 
+/**
+ * True when a claim is, or contains, a note to the site team.
+ *
+ * Keying on `claim_type` alone is not enough. A `mixed` claim combines several
+ * claim types and names them in `contains`, so an internal note can sit inside
+ * one without the top-level `claim_type` ever saying so —
+ * `supplementary_applications[4].naming` on rotman-commerce-supp is exactly
+ * that: `claim_type: "mixed"` with `contains: ["official", "internal_note"]`.
+ *
+ * That one instance happens to be publishable and nothing leaks today. The
+ * filter is widened because the shape exists, not because of that record.
+ */
 function isInternalNote(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const claim = value as { claim_type?: unknown; contains?: unknown };
+  if (claim.claim_type === "internal_note") return true;
   return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    (value as { claim_type?: unknown }).claim_type === "internal_note"
+    Array.isArray(claim.contains) && claim.contains.includes("internal_note")
   );
 }
 

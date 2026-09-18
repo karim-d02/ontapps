@@ -87,7 +87,12 @@ const logIds = new Set();
 (function walk(value) {
   if (Array.isArray(value)) return value.forEach(walk);
   if (!value || typeof value !== "object") return;
-  if (value.claim_type === "internal_note" && typeof value.text === "string") {
+  // Matches the data layer: a claim is an internal note when claim_type says
+  // so OR when `contains` lists it inside a `mixed` claim.
+  const isInternalNote =
+    value.claim_type === "internal_note" ||
+    (Array.isArray(value.contains) && value.contains.includes("internal_note"));
+  if (isInternalNote && typeof value.text === "string") {
     internalNoteTexts.push(value.text);
   }
   if (Array.isArray(value.pdf_block_ids)) {
