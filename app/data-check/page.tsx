@@ -60,6 +60,27 @@ const IN_SCOPE: ContradictionType[] = [
   "official_internal",
 ];
 
+/**
+ * Records demoted to the collapsed "Minor discrepancies" section at the bottom.
+ *
+ * Both are fee amounts that differ by about a dollar:
+ *
+ *   K13  U of T Engineering assessment fee — $43.86 (U of T) vs $45 (OUAC)
+ *   K14  Rotman Commerce supplemental fee — $52 (Rotman, OUAC) vs $51 (OUInfo)
+ *
+ * They are real disagreements between official sources and they stay on the
+ * page and in the counts. They are moved out of the main sections because the
+ * other 28 entries are wrong OUAC codes, wrong deadlines and
+ * required-versus-recommended courses — things that change what a student does
+ * — and a dollar does not. Sitting alongside those, these two dilute the page.
+ *
+ * This is an explicit id list ON PURPOSE. Matching on "fee" or on a dollar sign
+ * would also bury a future fee contradiction with a gap that actually matters,
+ * silently and with nothing to notice. A new record is shown in the main
+ * sections until a human decides otherwise and adds its id here.
+ */
+const DEMOTED_AS_IMMATERIAL = ["K13", "K14"];
+
 /** Headings in the order they are shown. Stale pages lead: they are the clearest case. */
 const GROUPS: { type: ContradictionType; title: string }[] = [
   { type: "official_stale_page", title: "Pages still showing an earlier cycle" },
@@ -72,9 +93,14 @@ export default function DataCheckPage() {
   const unresolved = all.filter((entry) => entry.status === "unresolved").length;
   const withGuidance = all.filter((entry) => entry.guidance).length;
 
+  // The counts above cover every in-scope record, demoted ones included: they
+  // are still on the page, just further down it.
+  const demoted = all.filter((entry) => DEMOTED_AS_IMMATERIAL.includes(entry.id));
+  const primary = all.filter((entry) => !DEMOTED_AS_IMMATERIAL.includes(entry.id));
+
   const groups = GROUPS.map((group) => ({
     ...group,
-    records: all.filter((entry) => entry.type === group.type),
+    records: primary.filter((entry) => entry.type === group.type),
   })).filter((group) => group.records.length > 0);
 
   return (
@@ -130,6 +156,36 @@ export default function DataCheckPage() {
             </ul>
           </Reveal>
         ))}
+
+        {demoted.length > 0 && (
+          <Reveal as="section" id="minor" data-anchor>
+            <SectionHeader
+              level={2}
+              label={String(groups.length + 1).padStart(2, "0")}
+              title="Minor discrepancies"
+              className="border-t border-line-strong pt-5"
+            />
+            <p className="measure mt-3 text-small text-muted-foreground">
+              Official sources that disagree by an amount too small to change a
+              decision. Still logged, still unresolved — just not worth leading with.
+            </p>
+
+            {/* Collapsed by default. A plain <details>: keyboard reachable, no
+                motion, and it holds exactly the same rendering as every record
+                above once it is opened. */}
+            <details className="group mt-6 border-t border-line pt-4">
+              <summary className="cursor-pointer list-none text-label label-mono text-silver outline-none transition-colors duration-150 hover:text-silver-light focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
+                Show {demoted.length} minor{" "}
+                {demoted.length === 1 ? "discrepancy" : "discrepancies"}
+              </summary>
+              <ul className="mt-6 flex flex-col gap-[var(--gutter)]">
+                {demoted.map((record) => (
+                  <ContradictionRecord key={record.id} record={record} />
+                ))}
+              </ul>
+            </details>
+          </Reveal>
+        )}
       </div>
     </main>
   );
