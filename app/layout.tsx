@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   // 147 characters. Google truncates around 155–160, so the whole sentence
   // survives in a result rather than trailing off mid-clause.
   description:
-    "Deadlines, supplementary applications and admission averages for Ontario health, engineering, business and kinesiology programs. Every figure verified and dated.",
+    "Deadlines, supplementary applications and admission averages for Ontario university programs — engineering, business, health sciences and kinesiology.",
   applicationName: "OntApps",
   // No `icons` key on purpose. Declaring one here *overrides* Next's
   // file-based convention, so `app/icon.png` and `app/apple-icon.png` were

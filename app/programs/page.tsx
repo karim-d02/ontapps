@@ -16,7 +16,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "All programs",
   description:
-    "Every Ontario health, engineering, business and kinesiology program we track — deadlines, supplementary applications, admission averages and gatekeeping model, filterable and shareable.",
+    "Every program we track, with its OUAC codes, deadlines, required courses — and when each one actually evaluates you.",
   alternates: { canonical: "/programs" },
 };
 
