@@ -95,6 +95,20 @@ export function getVerificationDate(): string {
   return data.meta.verification.dates_and_codes_checked;
 }
 
+/**
+ * The last ISO date in the verification value.
+ *
+ * `dates_and_codes_checked` is a RANGE ("2026-09-15/2026-09-17"), not a single
+ * date, so it cannot be passed to `new Date()` or to formatDate. Callers that
+ * genuinely need one date — sitemap lastModified, for instance — take the end
+ * of the range, which is the last day the data was checked. Callers that are
+ * displaying it should print getVerificationDate() as given instead.
+ */
+export function getVerificationEndDate(): string {
+  const parts = data.meta.verification.dates_and_codes_checked.split("/");
+  return parts[parts.length - 1];
+}
+
 export function getVerificationStatement(): string {
   return data.meta.verification.statement;
 }

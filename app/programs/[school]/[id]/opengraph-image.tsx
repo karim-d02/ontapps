@@ -1,8 +1,8 @@
 import { ImageResponse } from "next/og";
 
-import { daysBetween, formatDate, resolveEntry, todayISO } from "@/lib/deadlines";
+import { daysBetween, formatDate, nextDeadlineFor, todayISO } from "@/lib/deadlines";
 import { LOGO_DATA_URI } from "@/lib/og-logo";
-import { getAllPrograms, getProgramById, getSchoolSlug } from "@/lib/programs";
+import { getAllPrograms, getProgramById, getVerificationDate } from "@/lib/data";
 
 export const alt = "Program deadline summary";
 export const size = { width: 1200, height: 630 };
@@ -10,7 +10,7 @@ export const contentType = "image/png";
 
 export function generateStaticParams() {
   return getAllPrograms().map((program) => ({
-    school: getSchoolSlug(program.school),
+    school: program.university_id,
     id: program.id,
   }));
 }
@@ -34,16 +34,13 @@ export default async function Image({
   const { school: schoolSlug, id } = await params;
   const program = getProgramById(id);
 
-  if (!program || getSchoolSlug(program.school) !== schoolSlug) {
+  if (!program || program.university_id !== schoolSlug) {
     return new ImageResponse(<Fallback />, size);
   }
 
   const today = todayISO();
-  const dated = program.timeline
-    .map((entry) => resolveEntry(entry, today))
-    .filter((item) => item.date !== null)
-    .sort((a, b) => a.date!.localeCompare(b.date!));
-  const next = dated.find((item) => item.daysRemaining! >= 0) ?? null;
+  // Only rows the data marks as real deadlines reach the card.
+  const next = nextDeadlineFor(program, today);
   const days = next ? daysBetween(today, next.date!) : null;
 
   return new ImageResponse(
@@ -73,7 +70,7 @@ export default async function Image({
               fontFamily: "ui-monospace, monospace",
             }}
           >
-            {program.school} · {program.campus}
+            {program.university} · {program.campus}
           </div>
           <div
             style={{
@@ -122,7 +119,7 @@ export default async function Image({
             >
               {next
                 ? formatDate(next.date!)
-                : program.suppApp.required
+                : program.supp_app_required
                   ? "Required"
                   : "Not required"}
             </div>
@@ -174,7 +171,9 @@ export default async function Image({
             <img src={LOGO_DATA_URI} width={18} height={18} alt="" style={{ borderRadius: 9 }} />
             ONTAPPS
           </span>
-          <span>VERIFIED {formatDate(program.verifiedOn).toUpperCase()}</span>
+          {/* A range ("2026-09-15/2026-09-17"), printed as given — formatDate
+              would turn it into an invalid date. */}
+          <span>VERIFIED {getVerificationDate()}</span>
         </div>
       </div>
     ),

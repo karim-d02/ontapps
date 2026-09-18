@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 
-import { getAllPrograms, getMeta, getSchools, getSchoolSlug } from "@/lib/programs";
+import {
+  getAllPrograms,
+  getUniversitySlugs,
+  getVerificationEndDate,
+} from "@/lib/data";
 
 // Sitemap entries must be absolute. metadataBase resolves the canonical and
 // Open Graph URLs in generateMetadata, but it does not apply here — relative
@@ -14,7 +18,9 @@ const abs = (path: string) => new URL(path, SITE_URL).toString();
  * program to programs.json adds it here.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date(getMeta().verifiedOn);
+  // The verification value is a range, so the end of it — the last day the
+  // data was checked — is what lastModified reads.
+  const lastModified = new Date(getVerificationEndDate());
 
   const staticRoutes: MetadataRoute.Sitemap = (
     [
@@ -27,16 +33,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ] satisfies MetadataRoute.Sitemap
   ).map((route) => ({ ...route, url: abs(route.url), lastModified }));
 
-  const schoolRoutes: MetadataRoute.Sitemap = getSchools().map((school) => ({
-    url: abs(`/programs/${getSchoolSlug(school)}`),
+  const schoolRoutes: MetadataRoute.Sitemap = getUniversitySlugs().map((slug) => ({
+    url: abs(`/programs/${slug}`),
     lastModified,
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
   const programRoutes: MetadataRoute.Sitemap = getAllPrograms().map((program) => ({
-    url: abs(`/programs/${getSchoolSlug(program.school)}/${program.id}`),
-    lastModified: new Date(program.verifiedOn),
+    url: abs(`/programs/${program.university_id}/${program.id}`),
+    lastModified,
     changeFrequency: "weekly",
     // The program pages are the reason anyone arrives from a search engine.
     priority: 0.9,

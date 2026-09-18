@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { LOGO_DATA_URI } from "@/lib/og-logo";
-import { getAllPrograms, getMeta, getSchools } from "@/lib/programs";
+import { getAllPrograms, getUniversities, getVerificationDate } from "@/lib/data";
 
 export const alt = "OntApps — Ontario university program deadlines and requirements";
 export const size = { width: 1200, height: 630 };
@@ -21,8 +21,7 @@ export const contentType = "image/png";
  */
 export default function Image() {
   const programs = getAllPrograms().length;
-  const universities = getSchools().length;
-  const meta = getMeta();
+  const universities = getUniversities().length;
 
   return new ImageResponse(
     (
@@ -116,7 +115,7 @@ export default function Image() {
               fontFamily: "ui-monospace, monospace",
             }}
           >
-            VERIFIED {formatForCard(meta.verifiedOn)}
+            VERIFIED {getVerificationDate()}
           </div>
         </div>
       </div>
