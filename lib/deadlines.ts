@@ -1,16 +1,20 @@
-import type { Program, TimelineEntry } from "@/types/program";
+import type { DateRange, Deadline, Program } from "@/types/schema";
 
 /**
  * The deadline urgency system.
  *
  * Every date in the interface resolves to exactly one of these states, and the
  * same state looks the same everywhere it appears — landing page, card,
- * program page, timeline. A student should recognise "not yet published" as
- * the same thing in all four places without being told.
+ * program page, timeline.
  *
  * Urgency is carried by weight, size and a status word, never by colour: the
  * palette is monochrome, and a departure board tells you "DELAYED" from thirty
  * feet without needing red.
+ *
+ * The new schema does the date reasoning for us and we do not second-guess it:
+ * `is_deadline` marks the only rows safe for date math, `is_prior_cycle` marks
+ * a previous cycle, and `date_range` carries a window. Nothing here parses
+ * `date_text` — it is display copy, never an input.
  */
 export type DateState =
   /** Confirmed date, already gone. */
@@ -21,23 +25,34 @@ export type DateState =
   | "soon"
   /** Confirmed, more than 30 days out. */
   | "later"
-  /** No date published yet — `confirmed: false`. Never rendered as a date. */
+  /** No date published yet. Never rendered as a date. */
   | "unpublished"
   /**
-   * Confirmed, but the entry is a window rather than a day ("offers issued in
-   * rounds from Nov/Dec through May"). Distinct from `unpublished`: the
-   * university HAS told us, there simply isn't one date to show.
+   * The source gave a window rather than a day. Distinct from `unpublished`:
+   * the university HAS told us, there simply isn't one date to show.
    */
-  | "rolling";
+  | "rolling"
+  /**
+   * A PREVIOUS cycle's date, kept for reference. Never upcoming, never in a
+   * countdown, and always labelled as last cycle where it is shown at all.
+   */
+  | "prior_cycle";
 
 export interface DatedItem {
   state: DateState;
   /** ISO date, present only for past/imminent/soon/later. */
   date: string | null;
+  /** Set when the source gave a window instead of a single date. */
+  dateRange: DateRange | null;
   /** Whole calendar days from today. Negative once the date has passed. */
   daysRemaining: number | null;
   label: string;
-  critical: boolean;
+  /** Display copy from the data. Never parsed, never sorted on. */
+  dateText: string | null;
+  kind: Deadline["kind"];
+  /** Derived in the data: the only rows safe for countdowns and sorting. */
+  isDeadline: boolean;
+  isPriorCycle: boolean;
 }
 
 /** Today as an ISO date string in the viewer's own local calendar. */
@@ -69,38 +84,43 @@ export function stateForDays(daysRemaining: number): DateState {
   return "later";
 }
 
-/** Resolves a raw timeline entry into a state. Never guesses a missing date. */
-export function resolveEntry(entry: TimelineEntry, today: string): DatedItem {
-  if (!entry.date) {
-    return {
-      // `confirmed` is what separates "they haven't told us" from "they told
-      // us it's a window". Collapsing the two would report a published
-      // schedule as missing, and a missing one as published.
-      state: entry.confirmed ? "rolling" : "unpublished",
-      date: null,
-      daysRemaining: null,
-      label: entry.label,
-      critical: entry.critical,
-    };
+/**
+ * Resolves a deadline row into a state. Never guesses a missing date.
+ *
+ * Order matters: a prior-cycle row is a prior-cycle row even when it carries a
+ * perfectly parseable date range, because presenting last year's date as this
+ * year's is the failure mode that actually costs someone a place.
+ */
+export function resolveDeadline(deadline: Deadline, today: string): DatedItem {
+  const base = {
+    date: null,
+    dateRange: deadline.date_range,
+    daysRemaining: null,
+    label: deadline.label,
+    dateText: deadline.date_text,
+    kind: deadline.kind,
+    isDeadline: deadline.is_deadline,
+    isPriorCycle: deadline.is_prior_cycle,
+  };
+
+  if (deadline.is_prior_cycle) {
+    return { ...base, state: "prior_cycle" };
   }
 
-  if (!entry.confirmed) {
-    return {
-      state: "unpublished",
-      date: null,
-      daysRemaining: null,
-      label: entry.label,
-      critical: entry.critical,
-    };
+  if (deadline.date_range) {
+    return { ...base, state: "rolling" };
   }
 
-  const daysRemaining = daysBetween(today, entry.date);
+  if (!deadline.date) {
+    return { ...base, state: "unpublished" };
+  }
+
+  const daysRemaining = daysBetween(today, deadline.date);
   return {
+    ...base,
     state: stateForDays(daysRemaining),
-    date: entry.date,
+    date: deadline.date,
     daysRemaining,
-    label: entry.label,
-    critical: entry.critical,
   };
 }
 
@@ -109,33 +129,60 @@ export interface ProgramDate extends DatedItem {
 }
 
 /**
- * Every dated, confirmed timeline entry across every program, soonest first.
+ * Every row across every program that is safe for date math, soonest first.
  *
- * Timeline entries only: every confirmed supplementary-application deadline in
- * the dataset is already mirrored as a timeline entry, so reading both would
- * double-count rather than add anything.
+ * `is_deadline` is the whole filter. It already means "kind is deadline AND the
+ * date parses", so this excludes decision windows, opening dates, recommended
+ * dates, milestones and — critically — prior-cycle rows.
  */
-export function allDatedEntries(programs: Program[], today: string): ProgramDate[] {
+export function allDatedEntries(
+  programs: Program[],
+  today: string,
+): ProgramDate[] {
   return programs
     .flatMap((program) =>
-      program.timeline
-        .map((entry) => ({ ...resolveEntry(entry, today), program }))
-        .filter((item): item is ProgramDate => item.date !== null)
+      program.deadlines
+        .filter((deadline) => deadline.is_deadline)
+        .map((deadline) => ({ ...resolveDeadline(deadline, today), program })),
     )
+    .filter((item): item is ProgramDate => item.date !== null)
     .sort((a, b) => a.date!.localeCompare(b.date!));
 }
 
-/** The soonest date still ahead of us, across all programs. */
-export function nextUpcoming(programs: Program[], today: string): ProgramDate | null {
-  return allDatedEntries(programs, today).find((item) => item.daysRemaining! >= 0) ?? null;
-}
-
-/** The soonest date still ahead of us that the dataset marks `critical`. */
-export function nextCritical(programs: Program[], today: string): ProgramDate | null {
+/** The soonest real deadline still ahead of us, across all programs. */
+export function nextUpcoming(
+  programs: Program[],
+  today: string,
+): ProgramDate | null {
   return (
     allDatedEntries(programs, today).find(
-      (item) => item.critical && item.daysRemaining! >= 0
+      (item) => item.daysRemaining !== null && item.daysRemaining >= 0,
     ) ?? null
+  );
+}
+
+/**
+ * Every dated row for one program, for display rather than date math.
+ *
+ * Prior-cycle rows are kept — a program page may show them — but they arrive
+ * carrying `state: "prior_cycle"` so a caller cannot render one as upcoming by
+ * accident.
+ */
+export function programDates(program: Program, today: string): DatedItem[] {
+  return program.deadlines.map((deadline) => resolveDeadline(deadline, today));
+}
+
+/** The soonest real deadline for one program. */
+export function nextDeadlineFor(
+  program: Program,
+  today: string,
+): DatedItem | null {
+  return (
+    program.deadlines
+      .filter((deadline) => deadline.is_deadline)
+      .map((deadline) => resolveDeadline(deadline, today))
+      .filter((item) => item.date !== null && item.daysRemaining! >= 0)
+      .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null
   );
 }
 
@@ -163,6 +210,15 @@ export function formatDateLong(iso: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+/** "Feb 2 – Feb 5, 2026" for a window the source gave as a range. */
+export function formatDateRange(range: DateRange): string | null {
+  if (!range.start && !range.end) return null;
+  if (range.start && range.end) {
+    return `${formatDate(range.start)} – ${formatDate(range.end)}`;
+  }
+  return formatDate((range.start ?? range.end)!);
 }
 
 /**

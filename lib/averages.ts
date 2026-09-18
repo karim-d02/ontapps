@@ -1,19 +1,165 @@
-import type { AverageEntry, Program } from "@/types/program";
+import type {
+  Claim,
+  CourseRequirement,
+  GradeRange,
+  Program,
+} from "@/types/schema";
 
 /**
  * The average side of the eligibility check.
  *
  * This answers one question — "am I allowed to apply" — and deliberately
  * refuses to answer the other one. There is no scoring, no ranking, no
- * likelihood. A student reading this at 1am should come away knowing whether a
- * published floor exists and whether they clear it, and nothing more.
+ * likelihood.
  *
- * The load-bearing idea is that entries in `averages` are not all the same
- * kind of number. Some are eligibility floors. Most are competitiveness
- * guidelines that universities publish precisely because they are *not*
- * cutoffs. Gating on the second kind would invent a rule the university never
- * made, and would tell students they can't apply to programs they can.
+ * REBUILT for the new schema. There is no `averages` array any more, and the
+ * three fields that replaced it are not interchangeable:
+ *
+ *   official_minimum          (16/16) the published floor, or an explicit null
+ *   grade_ranges              (13/16) prose competitiveness ranges
+ *   community_competitiveness (13/16) applicant-reported
+ *
+ * They are kept apart here on purpose. The old implementation had to classify
+ * prose figures with regular expressions to work out whether a number was a
+ * gate or a guide; the new data answers that structurally via
+ * `official_minimum.value.type`, so none of that guesswork survives. Grade
+ * ranges are never parsed into numbers and community figures are never a
+ * threshold under any circumstances.
  */
+
+/* ── What the published minimum actually is ──────────────────────────────── */
+
+export type MinimumKind =
+  /** A published average floor with a number. May be checked against. */
+  | "averageFloor"
+  /** A minimum on individual required courses, not on the average. */
+  | "courseFloor"
+  /** A published figure whose shape the data does not structure. Shown, never checked. */
+  | "unstructured"
+  /** The university publishes no cutoff. A real answer, not a gap. */
+  | "none";
+
+export interface CourseMinimum {
+  course: string;
+  percent: number;
+}
+
+export interface OfficialMinimumView {
+  /** The envelope, so it renders through <Claim> like everything else. */
+  claim: Claim;
+  kind: MinimumKind;
+  /** Present only for `averageFloor` — the number that may be compared against. */
+  percent: number | null;
+  /** Per-course minimums the data states alongside the average. */
+  courseMinimums: CourseMinimum[];
+  /**
+   * True when the claim is contradicted. A contradicted figure is never turned
+   * into a pass/fail — that would be silently picking a side.
+   */
+  contested: boolean;
+}
+
+function readCourseMinimums(value: Record<string, unknown>): CourseMinimum[] {
+  const out: CourseMinimum[] = [];
+  // The data names these explicitly (e.g. `eng4u_minimum: 70`). Only keys the
+  // data actually carries are read; nothing is derived from a course list.
+  for (const [key, raw] of Object.entries(value)) {
+    const match = /^([a-z]{3}4[um])_minimum$/i.exec(key);
+    if (match && typeof raw === "number") {
+      out.push({ course: match[1].toUpperCase(), percent: raw });
+    }
+  }
+  return out;
+}
+
+/**
+ * Classifies the published minimum from its structured `value`.
+ *
+ * `value.type` is the whole decision. Western's 70% is
+ * `required_course_minimum` — a per-course gate that must never be compared
+ * against a calculated average — and Queen's Commerce carries two disagreeing
+ * official figures with no `type` at all, which is exactly the case that must
+ * not become a verdict.
+ */
+export function classifyOfficialMinimum(program: Program): OfficialMinimumView {
+  const claim = program.official_minimum;
+  const contested = claim.verification.status === "contradiction";
+  const value = claim.value;
+
+  if (value === null || typeof value !== "object") {
+    return { claim, kind: "none", percent: null, courseMinimums: [], contested };
+  }
+
+  const record = value as Record<string, unknown>;
+  const courseMinimums = readCourseMinimums(record);
+  const type = typeof record.type === "string" ? record.type : null;
+  const percent = typeof record.percent === "number" ? record.percent : null;
+
+  if (type === "minimum_average" && percent !== null) {
+    return {
+      claim,
+      kind: "averageFloor",
+      // A contradicted figure is shown but never checked against.
+      percent: contested ? null : percent,
+      courseMinimums,
+      contested,
+    };
+  }
+
+  if (type === "required_course_minimum") {
+    return {
+      claim,
+      kind: "courseFloor",
+      percent: null,
+      courseMinimums:
+        percent !== null
+          ? [...courseMinimums, { course: "required courses", percent }]
+          : courseMinimums,
+      contested,
+    };
+  }
+
+  return { claim, kind: "unstructured", percent: null, courseMinimums, contested };
+}
+
+/* ── Grade ranges and community figures ──────────────────────────────────── */
+
+export interface GradeRangeView {
+  claim: GradeRange;
+  scope: string;
+  /** Prose, e.g. "high 80s to low 90s". Never parsed, never charted. */
+  range: string;
+  sourceLabel: string | null;
+}
+
+/**
+ * Competitiveness ranges, exactly as written.
+ *
+ * AGENTS.md: "Ranges are prose, not numbers. Do not parse them into numbers,
+ * do not chart them, do not average them." So this reshapes for rendering and
+ * does nothing else.
+ */
+export function gradeRanges(program: Program): GradeRangeView[] {
+  return program.grade_ranges.map((claim) => ({
+    claim,
+    scope: claim.value?.scope ?? "",
+    range: claim.value?.range ?? "",
+    sourceLabel: claim.source_label ?? null,
+  }));
+}
+
+/** Required context where it exists — not optional decoration. */
+export function gradeRangeNote(program: Program): Claim | null {
+  return program.grade_range_note;
+}
+
+/**
+ * Applicant-reported figures. These skew high, are kept visually distinct, and
+ * are never the headline number or a threshold.
+ */
+export function communityFigures(program: Program): Claim[] {
+  return program.community_competitiveness;
+}
 
 /* ── How each program calculates the average ─────────────────────────────── */
 
@@ -30,66 +176,43 @@ export interface AverageRule {
   approximate: boolean;
 }
 
-const WORD_TO_NUMBER: Record<string, number> = {
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
-};
-
-function countFrom(text: string): number | null {
-  const digits = /\b(\d+)\s+4U\/M\b/i.exec(text);
-  if (digits) return Number(digits[1]);
-  const words = /\b(one|two|three|four|five|six|seven|eight)\s+4U\/M\b/i.exec(text);
-  if (words) return WORD_TO_NUMBER[words[1].toLowerCase()] ?? null;
-  return null;
+function requiresEnglish(courses: CourseRequirement[]): boolean {
+  return courses.some(
+    (course) =>
+      course.requirement_level === "required" &&
+      /\bENG4U\b/.test(course.course),
+  );
 }
 
 /**
- * Derives the calculation rule from the program's own text.
+ * Derives the calculation rule from the program's own fields.
  *
- * `courses.total` carries it for most programs ("Six 4U/M courses, co-op
- * excluded from the average"). UTM states its rule in an averages note instead
- * ("ENG4U plus the best five 4U/M courses"), which is the same six-course
- * shape with English pinned, so that one is read from there.
+ * `required_courses.total_courses` carries the count as a number on 14 of 16
+ * programs, so this reads it directly instead of pulling it out of prose. The
+ * two UofT Engineering entries do not state one; rather than assume a number
+ * and present it as the university's, that case is flagged approximate.
  */
 export function averageRule(program: Program): AverageRule {
-  const total = program.courses.total ?? "";
+  const required = program.required_courses;
+  const total = required.total_courses;
   const caveats: string[] = [];
 
-  // Conditions stated in the total line that the calculator cannot enforce
-  // from seven checkboxes — surfaced rather than quietly dropped.
-  if (/co-op excluded/i.test(total)) {
-    caveats.push("Co-op courses are excluded from this program's average.");
-  }
-  const disciplineCap = /No more than (\w+) (4M) courses from the same discipline/i.exec(total);
-  if (disciplineCap) {
-    caveats.push(
-      `No more than ${disciplineCap[1]} ${disciplineCap[2]} courses from the same discipline may count.`
-    );
-  }
-
-  // UTM publishes its rule alongside the floor rather than in courses.total.
-  const utmRule = program.averages.find(
-    (entry) => entry.type === "official" && /ENG4U plus the best (\w+) 4U\/M/i.test(entry.note ?? "")
-  );
-  if (utmRule) {
-    const best = /ENG4U plus the best (\w+) 4U\/M/i.exec(utmRule.note ?? "");
-    const extra = best ? (WORD_TO_NUMBER[best[1].toLowerCase()] ?? Number(best[1])) : null;
-    if (extra && Number.isFinite(extra)) {
-      return {
-        count: extra + 1,
-        englishRequired: true,
-        source: `${utmRule.source}: ${utmRule.note}`,
-        caveats,
-        approximate: false,
-      };
+  // Requirements the data itself marks as not evaluable — prose constraints
+  // like "one non-math, non-science, non-technology 4U/M credit". Surfaced
+  // rather than quietly dropped, because seven checkboxes cannot enforce them.
+  for (const course of required.value ?? []) {
+    if (course.evaluable === false) {
+      caveats.push(`${course.course} — stated as ${course.requirement}, and not something this check can verify.`);
     }
   }
 
-  const count = countFrom(total);
-  if (count) {
+  const count = typeof total === "number" ? total : Number(total);
+
+  if (Number.isFinite(count) && count > 0) {
     return {
       count,
-      englishRequired: /including ENG4U/i.test(total),
-      source: total,
+      englishRequired: requiresEnglish(required.value ?? []),
+      source: required.text,
       caveats,
       approximate: false,
     };
@@ -99,10 +222,11 @@ export function averageRule(program: Program): AverageRule {
   // presenting a made-up number as though it were the program's own.
   return {
     count: 6,
-    englishRequired: false,
+    englishRequired: requiresEnglish(required.value ?? []),
     source: "No calculation rule published for this program",
     caveats: [
-      "This program doesn't publish how it calculates the average. Six 4U/M courses is the Ontario norm and is what's used here — treat the result as approximate.",
+      ...caveats,
+      "This program doesn't publish how many courses go into the average. Six 4U/M courses is the Ontario norm and is what's used here — treat the result as approximate.",
     ],
     approximate: true,
   };
@@ -122,7 +246,7 @@ export interface AverageResult {
 
 export function calculateAverage(
   program: Program,
-  marks: Record<string, number | null>
+  marks: Record<string, number | null>,
 ): AverageResult {
   const rule = averageRule(program);
   const entered = Object.entries(marks)
@@ -157,198 +281,59 @@ export function calculateAverage(
   };
 }
 
-/* ── What each published figure actually is ──────────────────────────────── */
-
-export type ThresholdKind =
-  /** A published eligibility floor with a number. May be checked against. */
-  | "floor"
-  /** Stated as a minimum but not as a precise figure ("Low 90s"). Shown, never checked. */
-  | "softFloor"
-  /** A minimum on individual required courses, not on the average. */
-  | "courseFloor"
-  /** A competitiveness guideline or recommendation. Context only, never a gate. */
-  | "guideline"
-  /** The university states there is no cutoff. */
-  | "noCutoff"
-  /** Self-reported. Never a threshold under any circumstances. */
-  | "community";
-
-export interface ClassifiedAverage {
-  entry: AverageEntry;
-  kind: ThresholdKind;
-  /** Present only for `floor` — the number that may be compared against. */
-  minimum: number | null;
-  /** Why it was classified this way, in the data's own words. */
-  basis: string;
-}
-
-const GUIDELINE_LANGUAGE =
-  /\b(guideline|recommend|recommendation|competitive|competitiveness|anticipated|not a published minimum|do not quote|not officially published|anecdotal|outlier|interpretation|by discipline)\b/i;
-
-const NO_CUTOFF_LANGUAGE = /\bno (published|single published|officially)?\s*(single )?(published )?cutoff\b|not officially published as a cutoff/i;
-
-const FLOOR_LANGUAGE =
-  /\b(minimum|floor|to be considered|for admission consideration|for consideration)\b/i;
-
-/**
- * Floor words used in the negative.
- *
- * Western Med Sci's OUInfo note reads "A competitiveness guideline, not a
- * published minimum. Do not quote as a cutoff" — it contains the word
- * "minimum" and means the exact opposite. Without this, the figure the dataset
- * explicitly warns against quoting as a cutoff became a pass/fail gate.
- */
-const NEGATED_FLOOR =
-  /\bno[t]?\s+(a\s+)?(published\s+)?(single\s+)?(minimum|cutoff)\b|\bnot officially published\b|\bdo not quote\b|\bno published\b/i;
-
-/**
- * A *precise* published figure — a number carrying a % or a +.
- *
- * "Low 90s" and "High 80s to low 90s" are ranges a human wrote, not
- * thresholds; matching a bare number inside them turned "Low 90s" into a
- * 90% gate. Requiring the unit is what separates "90+" from "90s".
- */
-const PRECISE_FIGURE = /(?:^|[^A-Za-z0-9])(\d{2,3})\s*(?:%|\+)/;
-
-/**
- * Decides whether a published figure is a gate or a guide.
- *
- * Reads the `note` first, because that is where the dataset draws the
- * distinction explicitly — Western Med Sci's OUInfo figure carries "A
- * competitiveness guideline, not a published minimum. Do not quote as a
- * cutoff", and it would be actively harmful to render that as a pass/fail.
- */
-export function classifyAverage(entry: AverageEntry): ClassifiedAverage {
-  if (entry.type === "community") {
-    return {
-      entry,
-      kind: "community",
-      minimum: null,
-      basis: "Self-reported by applicants. Never used as a threshold here.",
-    };
-  }
-
-  const note = entry.note ?? "";
-  const figure = entry.figure;
-
-  if (NO_CUTOFF_LANGUAGE.test(figure) || NO_CUTOFF_LANGUAGE.test(note)) {
-    return { entry, kind: "noCutoff", minimum: null, basis: note || figure };
-  }
-
-  // The note wins over the figure: a figure can read like a floor ("Mid to
-  // high 80s") while its note says in as many words that it isn't one.
-  if (NEGATED_FLOOR.test(note) || NEGATED_FLOOR.test(figure)) {
-    return { entry, kind: "guideline", minimum: null, basis: note || figure };
-  }
-  // The figure is the university's own wording, so when *it* states a minimum
-  // that settles it: a note about competitive applicants sitting above the
-  // floor describes the field, not the gate. McMaster's iBioMed entry reads
-  // "90% published minimum for consideration" with a note about selection
-  // being competitive, and it is nonetheless a published minimum.
-  const figureIsFloor = FLOOR_LANGUAGE.test(figure);
-
-  if (!figureIsFloor && GUIDELINE_LANGUAGE.test(note) && !FLOOR_LANGUAGE.test(note)) {
-    return { entry, kind: "guideline", minimum: null, basis: note };
-  }
-
-  // "70% in required courses" is a per-course gate, not an average gate. It is
-  // applied by the course checker (see requiredCourseFloor) and must never be
-  // compared against a calculated average.
-  if (/in required courses/i.test(figure)) {
-    return {
-      entry,
-      kind: "courseFloor",
-      minimum: null,
-      basis:
-        "A minimum on each required course, not on the average — it's checked in the course tab.",
-    };
-  }
-
-  if (!figureIsFloor && !FLOOR_LANGUAGE.test(note)) {
-    return { entry, kind: "guideline", minimum: null, basis: note || figure };
-  }
-
-  // A floor is only checkable if it states a number. "Low 90s" is a stated
-  // minimum with no precise figure — shown, but never turned into pass/fail.
-  //
-  // Where a figure carries two clauses ("75% cumulative minimum to be
-  // considered; admission average anticipated over 90%"), the floor is in the
-  // first and the *anticipated* — i.e. competitive — number is in the second,
-  // so only the first is read.
-  const floorClause = figure.split(";")[0];
-  const numeric = PRECISE_FIGURE.exec(floorClause);
-  const value = numeric ? Number(numeric[1]) : null;
-
-  // Plausibility guard. Rotman's "Top 5% of their class; minimum overall
-  // average mid-high 80s" would otherwise read 5 as a 5% floor — the actual
-  // minimum sits in the second clause and isn't a number at all.
-  const minimum = value !== null && value >= 50 && value <= 100 ? value : null;
-
-  if (minimum === null) {
-    return { entry, kind: "softFloor", minimum: null, basis: note || figure };
-  }
-
-  return { entry, kind: "floor", minimum, basis: note || figure };
-}
+/* ── The verdict ─────────────────────────────────────────────────────────── */
 
 export interface EligibilityVerdict {
-  /** Numeric floors the student can actually be measured against. */
-  floors: ClassifiedAverage[];
-  /** Everything else, shown as context with no state attached. */
-  context: ClassifiedAverage[];
-  community: ClassifiedAverage[];
+  minimum: OfficialMinimumView;
+  ranges: GradeRangeView[];
+  rangeNote: Claim | null;
+  community: Claim[];
   /**
-   * `met` / `below` only ever reflect a published numeric floor.
+   * `met` / `below` only ever reflect a published numeric average floor.
    * `noFloor` means the university publishes none — which is a fact about the
    * university, not a verdict about the student.
    * `unknown` means not enough marks have been entered yet.
    */
   status: "met" | "below" | "noFloor" | "unknown";
-  /** The highest floor that applies, for the summary line. */
-  highestFloor: number | null;
+  /** The floor that applies, for the summary line. */
+  floor: number | null;
 }
 
 export function eligibility(
   program: Program,
-  average: number | null
+  average: number | null,
 ): EligibilityVerdict {
-  const classified = program.averages.map(classifyAverage);
-  const community = classified.filter((c) => c.kind === "community");
+  const minimum = classifyOfficialMinimum(program);
 
-  /*
-   * A program that publishes a floor AND an official "no cutoff published"
-   * cannot be gated on either without picking a side.
-   *
-   * McMaster's page covers two applications: iBioMed publishes "90% minimum
-   * for consideration", Engineering I publishes "No single published cutoff".
-   * Gating the page on the iBioMed number would tell an Engineering I
-   * applicant with an 88 that they can't apply, which is false. Both figures
-   * are shown, each with its own source, and neither becomes a verdict.
-   */
-  const contested = classified.some((c) => c.kind === "noCutoff");
-  const floors = contested ? [] : classified.filter((c) => c.kind === "floor");
-  const context = classified.filter(
-    (c) => c.kind !== "community" && !floors.includes(c)
-  );
-
-  const highestFloor = floors.length
-    ? Math.max(...floors.map((f) => f.minimum!))
-    : null;
+  // Only a structured, uncontradicted average floor can produce a verdict.
+  // A per-course minimum is checked against courses, not against an average,
+  // and a contradicted figure is never resolved here.
+  const floor = minimum.kind === "averageFloor" ? minimum.percent : null;
 
   let status: EligibilityVerdict["status"];
-  if (highestFloor === null) status = "noFloor";
+  if (floor === null) status = "noFloor";
   else if (average === null) status = "unknown";
-  else status = average >= highestFloor ? "met" : "below";
+  else status = average >= floor ? "met" : "below";
 
-  return { floors, context, community, status, highestFloor };
+  return {
+    minimum,
+    ranges: gradeRanges(program),
+    rangeNote: gradeRangeNote(program),
+    community: communityFigures(program),
+    status,
+    floor,
+  };
 }
 
 /**
  * Waterloo recalculates every applicant's average against how their school's
  * graduates have actually performed at Waterloo. A number computed here is
  * therefore not the number Waterloo will use, and saying so is the whole
- * point — this is surfaced wherever Waterloo appears with marks entered.
+ * point. Read from `other_facts` by its key rather than matched on prose.
  */
 export function adjustmentWarning(program: Program): string | null {
-  return program.adjustmentFactor?.body ?? null;
+  const fact = program.other_facts.find(
+    (entry) => entry.key === "adjustment_factor",
+  );
+  return fact?.text ?? null;
 }

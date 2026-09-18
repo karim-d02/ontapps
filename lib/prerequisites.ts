@@ -1,37 +1,26 @@
-import type { Program } from "@/types/program";
+import { classifyOfficialMinimum } from "@/lib/averages";
+import type { CourseRequirement, Program } from "@/types/schema";
 
 /**
- * Reads `courses.required` back out of the dataset.
+ * Reads the required-course list back out of the dataset.
  *
- * The strings in there follow a small number of consistent shapes:
+ * REWRITTEN for the new schema. The old version had to parse strings like
+ * "One of MCV4U / MHF4U / MDM4U" and "ENG4U: minimum 80%" because that was all
+ * the data gave it. The new data structures every one of those:
  *
- *   "ENG4U"                                          a specific course
- *   "ENG4U: minimum 80%"                             …with a hard minimum
- *   "MHF4U: Advanced Functions, not Calculus"        …with a note
- *   "One of MCV4U / MHF4U / MDM4U"                   a choice between courses
- *   "One other 4U mathematics course: minimum 80%"   a choice from a subject
- *   "Three additional 4U/M courses"                  unspecified extras
- *   "One non-math, non-science, non-technology 4U/M credit"
+ *   course              the code or the prose requirement
+ *   minimum_grade       the hard minimum, as a number
+ *   alternatives        the choice set, as an array of codes
+ *   requirement_level   "required" | "recommended", normalized
+ *   evaluable           false when it is a prose constraint, not a course
  *
- * The first five are checkable. The last two are not — nothing a student can
- * tick tells us whether their sixth credit was a non-science one — and the
- * checker says so rather than quietly assuming either way. A prerequisite
- * checker that silently treats "can't tell" as "fine" is worse than no checker.
+ * So the parsing is gone. `evaluable: false` is the data telling us directly
+ * that nothing a student can tick settles this one — the checker says so
+ * rather than quietly assuming either way. A prerequisite checker that
+ * silently treats "can't tell" as "fine" is worse than no checker.
  */
 
 const COURSE_CODE = /^[A-Z]{3}4[UM]$/;
-
-/**
- * Ontario 4U mathematics course codes.
- *
- * This is the one thing the app knows that data/programs.json doesn't, and it
- * is here only because "One other 4U mathematics course" can't be resolved
- * without knowing which codes are maths. These are curriculum codes, not
- * program details, and every one of them already appears in the dataset — but
- * the right long-term fix is a `subject` field on the dataset's course
- * entries, at which point this constant goes away.
- */
-const MATH_4U = ["MCV4U", "MHF4U", "MDM4U"];
 
 export type Requirement =
   | { kind: "course"; raw: string; code: string; min: number | null; note: string | null }
@@ -46,77 +35,67 @@ export type Requirement =
        * don't. `constrained` is a real condition on what those credits may be
        * ("One non-math, non-science, non-technology 4U/M credit"), which a
        * student can genuinely miss. Collapsing the two into one "can't check"
-       * message buried McMaster Health Sci's non-science credit next to
-       * Western's "Two electives", and the dataset says in as many words that
-       * it is "a requirement, not a suggestion".
+       * message buried McMaster BHSc's non-science credit next to Western's
+       * "Two electives", and the dataset says in as many words that it is
+       * "required, not a suggestion".
        */
       shape: "extraCredits" | "constrained";
     };
 
-export function parseRequirement(raw: string): Requirement {
-  const separator = raw.indexOf(": ");
-  const head = separator === -1 ? raw : raw.slice(0, separator);
-  const tail = separator === -1 ? null : raw.slice(separator + 2);
+/** Builds a Requirement from the dataset's structured course entry. */
+export function toRequirement(entry: CourseRequirement): Requirement {
+  const raw = entry.course;
+  const min =
+    typeof entry.minimum_grade === "number"
+      ? entry.minimum_grade
+      : entry.minimum_grade !== null && entry.minimum_grade !== undefined
+        ? Number(entry.minimum_grade) || null
+        : null;
+  const note = entry.note;
 
-  const minMatch = /minimum\s+(\d{2,3})\s*%/i.exec(tail ?? "");
-  const min = minMatch ? Number(minMatch[1]) : null;
-  // If the tail was only ever "minimum 80%", it's a constraint, not a note.
-  const note = tail && !/^minimum\s+\d{2,3}\s*%$/i.test(tail.trim()) ? tail : null;
-
-  if (COURSE_CODE.test(head)) {
-    return { kind: "course", raw, code: head, min, note };
+  // `evaluable` is derived in the data specifically so the checker does not
+  // have to guess. It is authoritative.
+  if (entry.evaluable === false) {
+    const shape = /\b(additional|elective)/i.test(raw) ? "extraCredits" : "constrained";
+    return { kind: "unverifiable", raw, note, shape };
   }
 
-  const oneOf = /^One of (.+)$/i.exec(head);
-  if (oneOf) {
-    const codes = oneOf[1]
-      .split("/")
-      .map((part) => part.trim())
-      .filter((part) => COURSE_CODE.test(part));
-    if (codes.length > 0) return { kind: "oneOf", raw, codes, min, note };
+  const alternatives = (entry.alternatives ?? []).filter((code) => COURSE_CODE.test(code));
+  if (alternatives.length > 0) {
+    return { kind: "oneOf", raw, codes: alternatives, min, note };
   }
 
-  // "One other 4U mathematics course" — a choice from a subject rather than
-  // from a listed set. Resolved against the maths in MATH_4U.
-  if (/\bmathematics\b/i.test(head) && /^(one|a|another|an)\b/i.test(head)) {
-    return { kind: "oneOf", raw, codes: [...MATH_4U], min, note };
+  if (COURSE_CODE.test(raw)) {
+    return { kind: "course", raw, code: raw, min, note };
   }
 
-  // "Two additional 4U/M courses" / "Two electives" are counts. Anything else
-  // that reaches here is a condition on the credit, not just a tally of them.
-  const shape = /\b(additional|elective)/i.test(head) ? "extraCredits" : "constrained";
-  return { kind: "unverifiable", raw, note, shape };
+  // Marked evaluable but neither a bare code nor a listed choice set. Reported
+  // as something the checkboxes can't settle rather than guessed at.
+  return { kind: "unverifiable", raw, note, shape: "constrained" };
 }
 
 /**
  * A minimum mark that applies to every required course, stated at program
- * level rather than on the individual requirement strings.
+ * level rather than on the individual entries.
  *
- * Two programs state one, and they state it in two different places:
- *   · Western Health Sci — courses.notes: "Required courses need a minimum 70%
- *     unless otherwise noted."
- *   · Western Med Sci — an averages entry whose figure is "70% in required
- *     courses", sourced to "Western: required course floor".
- *
- * The checker read neither, so a student with ENG4U at 65% was told they met
- * Western's requirements. "Unless otherwise noted" is honoured by treating
- * this as a default: a requirement that states its own minimum keeps it.
+ * In the new schema this is structured: `official_minimum.value.type` is
+ * "required_course_minimum" for exactly the two Western programs that state
+ * one (70%). No prose is matched. "Unless otherwise noted" is honoured by
+ * treating it as a default — an entry that states its own `minimum_grade`
+ * keeps it.
  */
 export function requiredCourseFloor(
-  program: Program
+  program: Program,
 ): { min: number; source: string } | null {
-  const fromNotes = /(?:minimum|at least)\s+(\d{2,3})\s*%/i.exec(program.courses.notes ?? "");
-  if (fromNotes) {
-    return { min: Number(fromNotes[1]), source: program.courses.notes };
-  }
+  const minimum = classifyOfficialMinimum(program);
+  if (minimum.kind !== "courseFloor") return null;
 
-  for (const average of program.averages) {
-    if (average.type !== "official") continue;
-    const match = /(\d{2,3})\s*%\s+in required courses/i.exec(average.figure);
-    if (match) return { min: Number(match[1]), source: average.source };
-  }
+  const floor = minimum.courseMinimums.find(
+    (entry) => entry.course === "required courses",
+  );
+  if (!floor) return null;
 
-  return null;
+  return { min: floor.percent, source: minimum.claim.text };
 }
 
 /** Every distinct 4U/M course code the dataset mentions, for the checkbox list. */
@@ -124,22 +103,20 @@ export function collectCourseCodes(programs: Program[]): string[] {
   const codes = new Set<string>();
 
   for (const program of programs) {
-    const lists = [
-      program.courses.required,
-      program.courses.recommended,
-      program.courses.requiredIBioMed ?? [],
+    const entries = [
+      ...(program.required_courses.value ?? []),
+      ...(program.recommended_courses.value ?? []),
     ];
-    for (const list of lists) {
-      for (const entry of list) {
-        const requirement = parseRequirement(entry);
-        if (requirement.kind === "course") codes.add(requirement.code);
-        if (requirement.kind === "oneOf") requirement.codes.forEach((code) => codes.add(code));
-      }
+    for (const entry of entries) {
+      const requirement = toRequirement(entry);
+      if (requirement.kind === "course") codes.add(requirement.code);
+      if (requirement.kind === "oneOf") requirement.codes.forEach((code) => codes.add(code));
     }
   }
 
   // English first (every program needs it), then maths, then sciences — the
   // order a student actually thinks in, rather than alphabetical.
+  const MATH_4U = ["MCV4U", "MHF4U", "MDM4U"];
   const order = (code: string) =>
     code.startsWith("ENG") ? 0 : MATH_4U.includes(code) ? 1 : code.startsWith("S") ? 2 : 3;
 
@@ -161,8 +138,6 @@ export interface ProgramResult {
   results: RequirementResult[];
   /** Program-level minimum applied to required courses, if the data states one. */
   floor: { min: number; source: string } | null;
-  /** Courses the iBioMed stream needs on top, that aren't ticked. */
-  streamMissing: string[];
   /**
    * `meets` — every checkable requirement is satisfied.
    * `missing` — at least one requirement is definitely not satisfied.
@@ -212,7 +187,7 @@ function courseDetail(
  * a requirement that had other options.
  */
 export function evaluateProgram(program: Program, state: CourseState): ProgramResult {
-  const requirements = program.courses.required.map(parseRequirement);
+  const requirements = (program.required_courses.value ?? []).map(toRequirement);
   const floor = requiredCourseFloor(program);
   // "unless otherwise noted": a requirement that states its own minimum keeps
   // it; everything else inherits the program-level floor.
@@ -301,35 +276,16 @@ export function evaluateProgram(program: Program, state: CourseState): ProgramRe
     (result) => result.status === "unknown-mark" || result.status === "unverifiable"
   );
 
-  // McMaster Engineering carries a second, longer list for its iBioMed stream
-  // (the Engineering I list plus SBI4U). The checker ignored it entirely, so a
-  // student without Biology was told they met the requirements for a page
-  // titled "Engineering I and iBioMed". Surfaced as a separate line rather
-  // than folded into the main verdict, because the two are different
-  // applications with different lists.
-  // Only what the stream needs *beyond* the main list — reporting every
-  // unticked course in the stream list repeats the main verdict and buries
-  // the one course that actually differs (SBI4U).
-  const mainCodes = new Set(
-    requirements.flatMap((requirement) =>
-      requirement.kind === "course" ? [requirement.code] : []
-    )
-  );
-  const streamMissing = (program.courses.requiredIBioMed ?? [])
-    .map(parseRequirement)
-    .filter(
-      (requirement) =>
-        requirement.kind === "course" &&
-        !mainCodes.has(requirement.code) &&
-        !state[requirement.code]?.have
-    )
-    .map((requirement) => (requirement.kind === "course" ? requirement.code : ""));
+  // The old schema had McMaster Engineering as one entry carrying a second,
+  // longer course list for its iBioMed stream, which the checker had to handle
+  // specially. The new schema splits them into two programs — mcmaster-engineering-i
+  // and mcmaster-ibiomed — each with its own required_courses, so the stream
+  // case is gone and each is simply evaluated on its own list.
 
   return {
     program,
     results,
     floor,
-    streamMissing,
     verdict: hasFailure ? "missing" : hasUnknown ? "incomplete" : "meets",
   };
 }

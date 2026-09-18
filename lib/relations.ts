@@ -1,5 +1,5 @@
-import { getAllPrograms, getSchoolSlug } from "@/lib/programs";
-import type { Program, TimelineEntry } from "@/types/program";
+import { getAllPrograms, getGatekeepingFor, getSupplementaryApplicationsForProgram } from "@/lib/data";
+import type { Program } from "@/types/schema";
 
 /**
  * Computed relationships between programs, and the list of things a
@@ -7,7 +7,8 @@ import type { Program, TimelineEntry } from "@/types/program";
  *
  * Everything here is derived from fields that already exist. Nothing is
  * inferred about difficulty, competitiveness or likelihood, and no date is
- * used unless it is both `confirmed` and non-null.
+ * used unless the data marks it `is_deadline` — which is the new schema's own
+ * flag for "a real, parseable deadline", and the only rows safe for date math.
  */
 
 const COLLISION_WINDOW_DAYS = 14;
@@ -15,37 +16,23 @@ const COLLISION_WINDOW_DAYS = 14;
 export interface DatedPoint {
   date: string;
   label: string;
-  /** Where the date came from, so the UI can attribute it. */
-  origin: "timeline" | "suppApp";
 }
 
 /**
  * Every date a program has actually committed to.
  *
- * `confirmed === true` AND a non-null date, with no exceptions. McMaster
- * BHSc's supplementary deadline is null with an `estimate` beside it; an
- * estimate is not a date and must never enter a collision calculation. A
- * student told two programs clash on a date one of them hasn't published is
- * being handed a fiction.
+ * `is_deadline === true` and nothing else. That flag already excludes decision
+ * windows, opening dates, recommended dates and prior-cycle rows, and it
+ * excludes deadlines whose date has not been published — McMaster BHSc's
+ * supplementary deadline is null with "early February 2027" beside it, and an
+ * expectation is not a date. A student told two programs clash on a date one
+ * of them hasn't published is being handed a fiction.
  */
 export function confirmedDates(program: Program): DatedPoint[] {
-  const points: DatedPoint[] = program.timeline
-    .filter((entry): entry is TimelineEntry & { date: string } =>
-      Boolean(entry.confirmed && entry.date)
-    )
-    .map((entry) => ({ date: entry.date, label: entry.label, origin: "timeline" as const }));
-
-  const supp = program.suppApp;
-  if (supp.required && supp.deadline.confirmed && supp.deadline.date) {
-    const date = supp.deadline.date;
-    // The supplementary deadline is mirrored in the timeline on every program
-    // that has one; only add it if it isn't already there.
-    if (!points.some((point) => point.date === date)) {
-      points.push({ date, label: supp.deadline.text, origin: "suppApp" });
-    }
-  }
-
-  return points.sort((a, b) => a.date.localeCompare(b.date));
+  return program.deadlines
+    .filter((deadline) => deadline.is_deadline && deadline.date)
+    .map((deadline) => ({ date: deadline.date!, label: deadline.label }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function daysApart(a: string, b: string): number {
@@ -59,26 +46,44 @@ export interface ProgramLink {
   href: string;
 }
 
+export function programHref(program: Program): string {
+  return `/programs/${program.university_id}/${program.id}`;
+}
+
 const linkTo = (program: Program): ProgramLink => ({
   program,
-  href: `/programs/${getSchoolSlug(program.school)}/${program.id}`,
+  href: programHref(program),
 });
 
-/** Other programs using the same gatekeeping model. */
+/**
+ * Other programs using the same gatekeeping model.
+ *
+ * "undetermined" is deliberately excluded from grouping: two programs whose
+ * model the data does not establish are not thereby similar to each other, and
+ * presenting them as a peer group would imply a shared classification that
+ * does not exist.
+ */
 export function sameGatekeeping(program: Program): ProgramLink[] {
+  const mine = getGatekeepingFor(program.id);
+  if (!mine || mine.model === "undetermined") return [];
+
   return getAllPrograms()
-    .filter((other) => other.id !== program.id && other.gatekeeping === program.gatekeeping)
+    .filter((other) => {
+      if (other.id === program.id) return false;
+      const theirs = getGatekeepingFor(other.id);
+      return theirs?.model === mine.model;
+    })
     .map(linkTo);
 }
 
-/** Other programs in the same category, at a different school. */
+/** Other programs in the same category, at a different university. */
 export function sameCategoryElsewhere(program: Program): ProgramLink[] {
   return getAllPrograms()
     .filter(
       (other) =>
         other.id !== program.id &&
         other.category === program.category &&
-        other.school !== program.school
+        other.university_id !== program.university_id,
     )
     .map(linkTo);
 }
@@ -112,7 +117,7 @@ export function dateCollisions(program: Program): Collision[] {
   }
 
   return collisions.sort(
-    (a, b) => a.other.date.localeCompare(b.other.date) || a.daysApart - b.daysApart
+    (a, b) => a.other.date.localeCompare(b.other.date) || a.daysApart - b.daysApart,
   );
 }
 
@@ -139,35 +144,35 @@ export function internalProximity(program: Program): Set<string> {
 /**
  * What the university has not published.
  *
- * Fixed labels, read off null / false / unconfirmed fields. It never explains
- * why something is missing and never says what the absence implies, because
- * the dataset records the absence and nothing more.
+ * Fixed labels, read off null / false fields. It never explains why something
+ * is missing and never says what the absence implies, because the dataset
+ * records the absence and nothing more.
  */
 export function notPublished(program: Program): string[] {
   const out: string[] = [];
-  const supp = program.suppApp;
 
-  if (program.seats === null) out.push("Seats: not published");
+  if (program.enrollment === null) out.push("Enrolment: not published");
+  if (program.official_minimum.value === null) {
+    out.push("Minimum average: no published cutoff");
+  }
+  if (program.grade_ranges.length === 0) out.push("Grade ranges: not published");
 
-  if (supp.required) {
-    if (!supp.deadline.confirmed || !supp.deadline.date) {
-      out.push("Supp app deadline: not yet confirmed");
+  for (const supp of getSupplementaryApplicationsForProgram(program)) {
+    if (!supp.required) continue;
+    const fee = supp.fee;
+    if (fee && (fee.value === null || fee.value?.amount === null)) {
+      out.push("Supp app fee: not published");
     }
-    if (supp.fee === null) out.push("Fee: not published");
-    if (!supp.rubricPublished) out.push("Rubric: not published");
-    if (supp.questionsPublishedInAdvance === false) {
-      out.push("Questions: not published in advance");
-    }
-    if (supp.formatUnconfirmed) out.push("Supp app format: not yet confirmed");
-    if (!supp.weighting.official) out.push("Weighting: not officially published");
+    if (supp.weighting === null) out.push("Weighting: not published");
   }
 
-  for (const entry of program.timeline) {
-    if (!entry.confirmed) {
-      out.push("Timeline dates: not yet published");
-      break;
-    }
-  }
+  // A deadline row the university has flagged as not yet published for this
+  // cycle. Read off the verification status rather than off the missing date,
+  // because the two are different statements.
+  const unpublished = program.deadlines.some(
+    (deadline) => deadline.verification.status === "not_yet_published",
+  );
+  if (unpublished) out.push("Some dates: not yet published for this cycle");
 
   return out;
 }
