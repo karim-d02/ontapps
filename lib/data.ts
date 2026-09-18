@@ -7,7 +7,6 @@
 import rawPrograms from "@/data/programs.json";
 import rawGatekeeping from "@/data/gatekeeping.json";
 import type {
-  Claim,
   ClaimEnvelope,
   Contradiction,
   GatekeepingData,

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Claim, ClaimList, ClaimSources } from "@/components/claim";
 import { GenericDetails, LabelledDetail, LabelledDetailList } from "@/components/labelled-detail";
+import { ClusterScatterChart } from "@/components/programs/cluster-scatter-chart";
 import { GatekeepingBadge, GatekeepingPanel } from "@/components/programs/gatekeeping-badge";
 import { ProgramToc, type TocItem } from "@/components/programs/program-toc";
 import { ScrollProgress } from "@/components/scroll-progress";
@@ -545,7 +546,7 @@ function SuppAppSection({
               <LabelledDetail label="Platform" claim={supp.platform} />
               <SuppFee supp={supp} />
               <LabelledDetailList label="Components" claims={supp.components} />
-              <LabelledDetail label="Weighting" claim={supp.weighting} showSources />
+              <SuppWeighting supp={supp} />
 
               {/* The long tail: ~50 subfields, 28 of which appear exactly once.
                   They fall through the generic renderer rather than each
@@ -565,6 +566,45 @@ function SuppAppSection({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * McMaster BHSc's weighting clusters — supp app score against GPA against
+ * outcome. The only chart in the dataset worth building.
+ *
+ * Its verification status is "unconfirmed" and its one source has no URL: it
+ * was presented at an open house and observed in person, not published. So it
+ * renders with that qualifier and an unlinked citation, which <Claim> already
+ * handles. The chart positions are ordering only — the axes render McMaster's
+ * own wording, never a number this code invented.
+ */
+function SuppWeighting({ supp }: { supp: SupplementaryApplication }) {
+  const weighting = supp.weighting;
+  if (!weighting) return null;
+
+  const keyLine = weighting.value?.key_line ?? null;
+  const hasClusters = Boolean(weighting.value?.clusters?.length);
+
+  return (
+    <div>
+      <p className="text-label label-mono text-silver">Weighting</p>
+      {keyLine && (
+        <p className="measure mt-2 text-body text-foreground">{keyLine}</p>
+      )}
+      <div className="mt-2">
+        <Claim claim={weighting} showSources />
+      </div>
+      {hasClusters && (
+        <div className="mt-6">
+          <ClusterScatterChart supp={supp} />
+          <p className="measure mt-3 text-small text-muted-foreground">
+            Positions are approximate and exist only to order the points. The axes
+            show McMaster&apos;s own wording.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

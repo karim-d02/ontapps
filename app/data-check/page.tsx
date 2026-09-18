@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui/card";
-import { Reveal } from "@/components/ui/reveal";
 import { SectionHeader } from "@/components/ui/section-header";
-import { formatDate } from "@/lib/deadlines";
-import { getMeta, getStaleOfficialPages } from "@/lib/programs";
 
 export const metadata: Metadata = {
   title: "What official pages get wrong",
@@ -13,80 +9,39 @@ export const metadata: Metadata = {
   alternates: { canonical: "/data-check" },
 };
 
+/**
+ * STUBBED DURING THE SCHEMA MIGRATION — see MIGRATION-REPORT.md.
+ *
+ * The previous version of this page was written against the old top-level
+ * `staleOfficialPages` array, whose records had `page`, `problem` and
+ * `checkedOn`. That array no longer exists. The replacement is
+ * `contradictions` filtered to type "official_stale_page" (7 records), and
+ * those records have a completely different shape — `title`, `status` and
+ * `statements[]`, each statement carrying `stated_by` and `sources`.
+ *
+ * That is not a field rename, it is a different page: one stale page is now a
+ * set of attributed statements that disagree, rather than a single problem
+ * sentence. How that should be laid out is a design decision, and this
+ * migration does not make those.
+ *
+ * The data layer is ready — lib/data.ts exports getStaleOfficialPages() — so
+ * rebuilding this is a page-level job with no data work left in front of it.
+ *
+ * The route is kept (and still linked from the footer) rather than deleted, so
+ * the URL does not start 404ing for anyone who has it.
+ */
 export default function DataCheckPage() {
-  const meta = getMeta();
-  const staleOfficialPages = getStaleOfficialPages();
-
   return (
     <main className="shell pt-[var(--rhythm-section)] pb-[var(--rhythm-section)] motion-safe:animate-fade-rise-sm">
       <SectionHeader level={1} label="Data check" title="What official pages get wrong" />
       <p className="measure mt-6 text-body text-muted-foreground">
-        Every date on this site is checked against the university&apos;s own admissions
-        page. When that page is stale or contradicts itself, we log it here instead of
-        quietly working around it.
+        This page is being rewritten.
       </p>
-
-      <dl className="mt-10 flex flex-wrap gap-x-12 gap-y-6 border-y border-line-strong py-6">
-        <div>
-          <dt className="text-label label-mono text-silver">Currently wrong</dt>
-          <dd className="data mt-2 text-metric text-foreground">
-            {staleOfficialPages.length}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-label label-mono text-silver">Last verified</dt>
-          <dd className="data mt-2 text-h3 font-semibold text-foreground">
-            <time dateTime={meta.verifiedOn}>{formatDate(meta.verifiedOn)}</time>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-label label-mono text-silver">Cycle</dt>
-          <dd className="data mt-2 text-h3 font-semibold text-foreground">{meta.cycle}</dd>
-        </div>
-      </dl>
-
-      <div className="stack-sections mt-[var(--rhythm-section)]">
-        <Reveal as="section">
-          <SectionHeader
-            level={2}
-            label="01"
-            title="Currently stale"
-            className="border-t border-line-strong pt-5"
-          />
-          {staleOfficialPages.length > 0 ? (
-            <ul className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {staleOfficialPages.map((entry, index) => (
-                <Card key={index} as="li" className="flex flex-col">
-                  <p className="data text-label text-silver">
-                    {String(index + 1).padStart(2, "0")}
-                  </p>
-                  <p className="mt-3 text-h3 font-semibold text-foreground">{entry.page}</p>
-                  <p className="mt-2 text-body text-muted-foreground">{entry.problem}</p>
-                  <p className="data mt-auto pt-6 text-label text-silver">
-                    Checked{" "}
-                    <time dateTime={entry.checkedOn}>{formatDate(entry.checkedOn)}</time>
-                  </p>
-                </Card>
-              ))}
-            </ul>
-          ) : (
-            <p className="measure mt-6 text-body text-muted-foreground">
-              No known stale official pages right now.
-            </p>
-          )}
-        </Reveal>
-
-        <Reveal as="section">
-          <SectionHeader
-            level={2}
-            label="02"
-            title="How figures are labelled"
-            className="border-t border-line-strong pt-5"
-          />
-          <p className="measure mt-6 text-body text-foreground">{meta.disclaimer}</p>
-          <p className="measure mt-4 text-small text-muted-foreground">{meta.cycleNote}</p>
-        </Reveal>
-      </div>
+      <p className="measure mt-4 text-body text-muted-foreground">
+        The underlying data changed shape and this view has not been rebuilt against
+        it yet. Every program page still shows its own sources and flags where
+        official sources disagree.
+      </p>
     </main>
   );
 }

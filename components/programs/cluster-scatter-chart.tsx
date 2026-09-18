@@ -9,7 +9,7 @@ import {
   scoreTicks,
   toClusterPoints,
 } from "@/lib/cluster-chart-data";
-import type { Program } from "@/types/program";
+import type { SupplementaryApplication } from "@/types/schema";
 
 // Bklit's ScatterChart is a time-series chart: its x-scale only accepts Dates
 // and its y-domain is forced to start at 0. Neither fits a score-vs-GPA
@@ -81,8 +81,12 @@ function ClusterAxes({
   );
 }
 
-export function ClusterScatterChart({ program }: { program: Program }) {
-  const points = toClusterPoints(program);
+export function ClusterScatterChart({
+  supp,
+}: {
+  supp: SupplementaryApplication;
+}) {
+  const points = toClusterPoints(supp);
   if (!points || points.length === 0) {
     return null;
   }

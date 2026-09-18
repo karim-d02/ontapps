@@ -1,4 +1,4 @@
-import type { Program } from "@/types/program";
+import type { SupplementaryApplication } from "@/types/schema";
 
 export interface ClusterPoint {
   /** Numeric x position — midpoint of the supp app score band. */
@@ -42,15 +42,19 @@ const SCORE_POSITIONS: Record<string, number> = {
 const MIN_RADIUS = 12;
 const RADIUS_SCALE = 2.1;
 
-export function toClusterPoints(program: Program): ClusterPoint[] | null {
-  const clusters = program.suppApp.required
-    ? program.suppApp.weighting.clusters
-    : undefined;
+/**
+ * Clusters now live on the supplementary application rather than the program:
+ * supp.weighting.value.clusters, present only on mcmaster-bhsc-supp.
+ */
+export function toClusterPoints(
+  supp: SupplementaryApplication,
+): ClusterPoint[] | null {
+  const clusters = supp.required ? supp.weighting?.value?.clusters : undefined;
   if (!clusters?.length) return null;
 
   const points = clusters.map((c) => {
-    const y = GPA_POSITIONS[c.gpa];
-    const x = SCORE_POSITIONS[c.suppAppScore];
+    const y = GPA_POSITIONS[c.gpa ?? ""];
+    const x = SCORE_POSITIONS[c.supp_app_score ?? ""];
     if (y === undefined || x === undefined) return null;
 
     const count = typeof c.count === "number" ? c.count : null;
@@ -59,9 +63,9 @@ export function toClusterPoints(program: Program): ClusterPoint[] | null {
       x,
       y,
       r: count === null ? MIN_RADIUS : Math.sqrt(count) * RADIUS_SCALE,
-      scoreLabel: c.suppAppScore,
-      gpaLabel: c.gpa,
-      outcome: c.outcome,
+      scoreLabel: c.supp_app_score ?? "",
+      gpaLabel: c.gpa ?? "",
+      outcome: c.outcome ?? "",
       count,
       unpublished: count === null,
     } satisfies ClusterPoint;

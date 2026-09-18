@@ -14,9 +14,38 @@
  * Usage:  npx next start -p 3100 &  node scripts/audit-fields.mjs
  *
  * Read-only. It never writes to data/programs.json.
+ *
+ * ── STUBBED DURING THE SCHEMA MIGRATION — see MIGRATION-REPORT.md ──────────
+ *
+ * Everything below the guard is written against the OLD schema. The
+ * expectation tables are keyed by old field paths ("suppApp.weighting.type",
+ * "averages[].type", "timeline[].critical", "ouacCodes[].code"), and each
+ * entry encodes a real judgement about whether a given field is expected to
+ * reach the page and in what rendered form. None of those paths exist any
+ * more, but the judgements behind them are worth keeping, so the tables are
+ * preserved here verbatim rather than deleted — rebuilding this script means
+ * re-keying them onto the new paths, not reinventing them.
+ *
+ * The walk itself also needs rethinking rather than re-keying: in the new
+ * schema almost every leaf sits inside a claim envelope, so a naive
+ * enumeration reports `verification.log_ids` and `pdf_block_ids` as fields
+ * that fail to render — which is correct behaviour, not a bug, since those are
+ * internal and must never appear.
  */
 
 import { readFile } from "node:fs/promises";
+
+console.error(
+  [
+    "scripts/audit-fields.mjs is stubbed.",
+    "",
+    "It is written against the pre-migration schema and its expectation tables",
+    "are keyed by field paths that no longer exist. The tables are preserved in",
+    "this file so the judgements in them can be re-keyed rather than reinvented.",
+    "See MIGRATION-REPORT.md.",
+  ].join("\n"),
+);
+process.exit(0);
 
 const BASE = process.env.AUDIT_BASE ?? "http://localhost:3100";
 

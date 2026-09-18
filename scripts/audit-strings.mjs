@@ -18,9 +18,12 @@ const BASE = process.env.AUDIT_BASE ?? "http://localhost:3100";
 const data = JSON.parse(
   await readFile(new URL("../data/programs.json", import.meta.url), "utf8")
 );
-
-const slug = (s) =>
-  s.toLowerCase().replace(/'/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+// gatekeeping.json is an editorial companion whose text renders on every
+// program page, so its strings have to be subtracted too — otherwise every
+// badge label and every piece of evidence shows up as composed residue.
+const gatekeeping = JSON.parse(
+  await readFile(new URL("../data/gatekeeping.json", import.meta.url), "utf8")
+);
 
 /** Every string value anywhere in the document, plus formatted date forms. */
 function stringsIn(value, out) {
@@ -40,6 +43,7 @@ function stringsIn(value, out) {
 
 const dataStrings = new Set();
 stringsIn(data, dataStrings);
+stringsIn(gatekeeping, dataStrings);
 // Longest first, so "Honours Health Sciences (BHSc)" is removed before "Health".
 const ordered = [...dataStrings].filter((s) => s.length > 1).sort((a, b) => b.length - a.length);
 
@@ -64,7 +68,8 @@ async function visibleText(url) {
 const residue = new Map(); // phrase -> Set(programs)
 
 for (const program of data.programs) {
-  const url = `${BASE}/programs/${slug(program.school)}/${program.id}`;
+  // university_id is already the URL slug in the new schema.
+  const url = `${BASE}/programs/${program.university_id}/${program.id}`;
   let text = await visibleText(url);
 
   for (const s of ordered) {
