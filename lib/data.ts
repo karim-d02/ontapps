@@ -23,7 +23,7 @@ import type {
   University,
 } from "@/types/schema";
 
-// --- internal_note is filtered here, at the data layer --------------------
+// --- Internal-only data is stripped here, at the data layer ---------------
 //
 // AGENTS.md: claim_type "internal_note" is a note to the site team and must
 // never reach a page — and must be filtered in the data layer, not in a
@@ -31,9 +31,17 @@ import type {
 // remember. Any array element that is an internal_note is dropped; any object
 // property holding one is nulled.
 //
-// As of this migration the data contains zero internal_note claims, so this is
-// currently a no-op guard. It stays because the contract is about what may
-// reach a page, not about what happens to be in the file today.
+// As of this migration the data contains zero internal_note claims, so that
+// part is currently a no-op guard. It stays because the contract is about what
+// may reach a page, not about what happens to be in the file today.
+//
+// `pdf_block_ids` and `log_ids` are emptied here for a related reason. Nothing
+// renders them, but leaving them on the objects shipped them to the browser
+// anyway: pages with a client component (the browse grid, /check, /timeline)
+// serialize whole program objects into the RSC payload, and the ids were
+// sitting in the page source. The smoke test caught it. Emptying them at load
+// means no component can leak them, by construction, rather than by every
+// component remembering not to.
 
 function isInternalNote(value: unknown): boolean {
   return (
@@ -44,27 +52,32 @@ function isInternalNote(value: unknown): boolean {
   );
 }
 
-function stripInternalNotes<T>(input: T): T {
+/** Internal-only keys, emptied so their values never leave the server. */
+const INTERNAL_ID_KEYS = new Set(["pdf_block_ids", "log_ids", "verification_log_ids"]);
+
+function sanitize<T>(input: T): T {
   if (Array.isArray(input)) {
     return input
       .filter((entry) => !isInternalNote(entry))
-      .map((entry) => stripInternalNotes(entry)) as unknown as T;
+      .map((entry) => sanitize(entry)) as unknown as T;
   }
   if (typeof input === "object" && input !== null) {
     const out: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input)) {
-      out[key] = isInternalNote(value) ? null : stripInternalNotes(value);
+      if (INTERNAL_ID_KEYS.has(key) && Array.isArray(value)) {
+        out[key] = [];
+        continue;
+      }
+      out[key] = isInternalNote(value) ? null : sanitize(value);
     }
     return out as T;
   }
   return input;
 }
 
-const data: ProgramsData = stripInternalNotes(
-  rawPrograms as unknown as ProgramsData,
-);
+const data: ProgramsData = sanitize(rawPrograms as unknown as ProgramsData);
 
-const gatekeeping: GatekeepingData = stripInternalNotes(
+const gatekeeping: GatekeepingData = sanitize(
   rawGatekeeping as unknown as GatekeepingData,
 );
 

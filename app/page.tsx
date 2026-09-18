@@ -24,7 +24,7 @@ export const revalidate = 3600;
 
 export default function Page() {
   const programs = getAllPrograms();
-  const staleOfficialPages = getStaleOfficialPages();
+  const stalePages = getStaleOfficialPages();
   const today = todayISO();
 
   const next = nextUpcoming(programs, today);
@@ -114,7 +114,7 @@ export default function Page() {
         >
           <div>
             <dd className="data text-metric text-foreground">
-              <CountUp value={staleOfficialPages.length} />
+              <CountUp value={stalePages.length} />
             </dd>
             <dt className="mt-3 text-label label-mono text-silver">
               Official pages we found wrong
