@@ -3,54 +3,50 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { ClusterScatterChart } from "@/components/programs/cluster-scatter-chart";
+import { Claim, ClaimList, ClaimSources } from "@/components/claim";
+import { GenericDetails, LabelledDetail, LabelledDetailList } from "@/components/labelled-detail";
+import { GatekeepingBadge, GatekeepingPanel } from "@/components/programs/gatekeeping-badge";
 import { ProgramToc, type TocItem } from "@/components/programs/program-toc";
 import { ScrollProgress } from "@/components/scroll-progress";
-import { Card } from "@/components/ui/card";
 import { CopyCode } from "@/components/ui/copy-code";
-import { DataTable } from "@/components/ui/data-table";
 import { DateStamp } from "@/components/ui/date-stamp";
 import { Pill } from "@/components/ui/pill";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Stat } from "@/components/ui/stat";
-import { formatDate, resolveEntry, todayISO, type DatedItem } from "@/lib/deadlines";
+import {
+  formatDate,
+  formatDateRange,
+  nextDeadlineFor,
+  resolveDeadline,
+  todayISO,
+  type DatedItem,
+} from "@/lib/deadlines";
 import { whatThisMeans } from "@/lib/program-meaning";
 import {
   dateCollisions,
   internalProximity,
   notPublished,
+  programHref,
   sameCategoryElsewhere,
   sameGatekeeping,
 } from "@/lib/relations";
+import { classifyOfficialMinimum, gradeRanges } from "@/lib/averages";
 import {
   getAllPrograms,
   getCategoryLabel,
-  getGatekeepingDescription,
+  getContradictionById,
+  getInheritedSource,
   getProgramById,
-  getSchoolShortName,
-  getSchoolSlug,
-} from "@/lib/programs";
+  getSupplementaryApplicationsForProgram,
+  getUniversityShortName,
+  getVerificationDate,
+} from "@/lib/data";
 import { cn } from "@/lib/utils";
 import type {
-  AccessChain,
-  AdjustmentFactor,
-  AiScoring,
-  AlternativeOffer,
-  AverageEntry,
-  Courses,
-  GatekeepingModel,
+  Contradiction,
   Program,
-  Sources,
-  LookingFor,
-  PostSystem,
-  SuppAppComponent,
-  SuppAppRubric,
-  SuppAppWeightingCluster,
-  TimelineEntry,
-  Trap,
-  YearThreeEntry,
-} from "@/types/program";
+  SupplementaryApplication,
+} from "@/types/schema";
 
 // Day counts are rendered into the static HTML, so the HTML has to be allowed
 // to go stale by less than a day. LiveDays corrects any drift on the client;
@@ -59,7 +55,7 @@ export const revalidate = 3600;
 
 export function generateStaticParams() {
   return getAllPrograms().map((program) => ({
-    school: getSchoolSlug(program.school),
+    school: program.university_id,
     id: program.id,
   }));
 }
@@ -71,21 +67,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { school: schoolSlug, id } = await params;
   const program = getProgramById(id);
-  if (!program || getSchoolSlug(program.school) !== schoolSlug) return {};
+  if (!program || program.university_id !== schoolSlug) return {};
 
-  const supp = program.suppApp.required
+  const supp = program.supp_app_required
     ? "Supplementary application required"
     : "No supplementary application";
-  // Both halves are shortened: `shortName` where the program has one, and the
-  // school without the word "University". The longest of the eleven lands at
-  // 57 characters once the "· OntApps" template is appended, inside the ~60
-  // Google renders before it truncates.
-  const title = `${program.shortName ?? program.name} — ${getSchoolShortName(program.school)}`;
-  const description = `${supp}. Deadlines, required courses, admission averages and the traps that catch applicants out. Verified ${formatDate(program.verifiedOn)}.`;
+  // Both halves are shortened: `short_name` and the university without the
+  // word "University", to stay inside the ~60 characters Google renders.
+  const title = `${program.short_name} — ${getUniversityShortName(program.university)}`;
+  const verified = getVerificationDate();
+  const description = `${supp}. Deadlines, required courses, admission averages and the traps that catch applicants out. Verified ${verified}.`;
   // Shorter than the description above, which is written for a search result.
-  // A card body is clamped near 125 characters on mobile, so this trades the
-  // long clause for the verified date rather than letting the tail be cut.
-  const cardDescription = `${supp}. Deadlines, required courses, averages and the traps to avoid. Verified ${formatDate(program.verifiedOn)}.`;
+  const cardDescription = `${supp}. Deadlines, required courses, averages and the traps to avoid. Verified ${verified}.`;
   const path = `/programs/${schoolSlug}/${program.id}`;
 
   return {
@@ -97,15 +90,8 @@ export async function generateMetadata({
       description: cardDescription,
       url: path,
       type: "article",
-      // Declared again rather than inherited: a child `openGraph` replaces the
-      // root's outright, so without these two the program cards lost the
-      // site name and locale the root sets. Discord renders og:site_name above
-      // the title, and a card without it reads as coming from nowhere.
       siteName: "OntApps",
       locale: "en_CA",
-      // Declared rather than left to the file convention so each card gets
-      // the program's own alt text instead of one generic string shared by
-      // all eleven. `type` matches what the convention emits at the root.
       images: [
         {
           url: `${path}/opengraph-image`,
@@ -120,12 +106,6 @@ export async function generateMetadata({
   };
 }
 
-const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
-  atTheDoor: "At the door",
-  twoYearsIn: "Two years in",
-  hybrid: "Hybrid",
-};
-
 export default async function ProgramPage({
   params,
 }: {
@@ -134,116 +114,57 @@ export default async function ProgramPage({
   const { school: schoolSlug, id } = await params;
   const program = getProgramById(id);
 
-  if (!program || getSchoolSlug(program.school) !== schoolSlug) {
+  if (!program || program.university_id !== schoolSlug) {
     notFound();
   }
 
   const today = todayISO();
   const tightDates = internalProximity(program);
+  const supps = getSupplementaryApplicationsForProgram(program);
+  const contradictions = collectContradictions(program, supps);
 
   // Sections are assembled as data first so the contents list and the page
   // itself can't disagree about what's on the page — a TOC entry pointing at a
   // section that a conditional dropped is the classic version of this bug.
   const sections: { id: string; label: string; node: React.ReactNode }[] = [
-    ...(program.howToApply
-      ? [
-          {
-            id: "how-to-apply",
-            label: "How to apply",
-            node: (
-              <p className="measure text-body text-foreground">{program.howToApply}</p>
-            ),
-          },
-        ]
-      : []),
+    {
+      id: "gatekeeping",
+      label: "When you're evaluated",
+      node: <GatekeepingPanel programId={program.id} />,
+    },
     {
       id: "timeline",
-      label: "Timeline",
-      node: (
-        <TimelineSection
-          timeline={program.timeline}
-          today={today}
-          tightDates={tightDates}
-        />
-      ),
+      label: "Timeline and deadlines",
+      node: <TimelineSection program={program} today={today} tightDates={tightDates} />,
     },
-    ...(program.accessChain
-      ? [
-          {
-            id: "access-chain",
-            label: program.accessChain.title,
-            node: <AccessChainSection accessChain={program.accessChain} />,
-          },
-        ]
-      : []),
-    ...(program.yearThreeEntry
-      ? [
-          {
-            id: "year-three",
-            label: "Year three entry",
-            node: <YearThreeEntrySection yearThreeEntry={program.yearThreeEntry} />,
-          },
-        ]
-      : []),
-    ...(program.postSystem
-      ? [
-          {
-            id: "post-system",
-            label: program.postSystem.title,
-            node: <PostSystemSection postSystem={program.postSystem} />,
-          },
-        ]
-      : []),
-    ...(program.rules && program.rules.length > 0
-      ? [
-          {
-            id: "rules",
-            label: "Application rules",
-            node: <RulesSection rules={program.rules} />,
-          },
-        ]
-      : []),
     {
       id: "supp-app",
       label: "Supplementary application",
-      node: <SuppAppSection program={program} today={today} />,
+      node: <SuppAppSection program={program} supps={supps} />,
     },
     {
       id: "courses",
       label: "Required courses",
-      node: <CoursesSection courses={program.courses} />,
+      node: <CoursesSection program={program} />,
     },
-    ...(program.majors && program.majors.length > 0
-      ? [
-          {
-            id: "majors",
-            label: "Majors",
-            node: <MajorsSection majors={program.majors} />,
-          },
-        ]
-      : []),
     {
       id: "averages",
       label: "Averages",
-      node: (
-        <AveragesSection
-          averages={program.averages}
-          adjustmentFactor={program.adjustmentFactor}
-        />
-      ),
+      node: <AveragesSection program={program} />,
     },
-    ...(program.alternativeOffer
+    {
+      id: "traps",
+      label: "Traps",
+      node: <TrapsSection program={program} supps={supps} />,
+    },
+    ...(hasAdditionalDetails(program)
       ? [
           {
-            id: "alternative-offer",
-            label: "Alternative offer",
-            node: <AlternativeOfferSection alternativeOffer={program.alternativeOffer} />,
+            id: "details",
+            label: "Additional details",
+            node: <AdditionalDetailsSection program={program} />,
           },
         ]
-      : []),
-    { id: "traps", label: "Traps", node: <TrapsSection traps={program.traps} /> },
-    ...(program.prep
-      ? [{ id: "prep", label: "Prep", node: <PrepSection prep={program.prep} /> }]
       : []),
     {
       id: "related",
@@ -259,10 +180,19 @@ export default async function ProgramPage({
           },
         ]
       : []),
+    ...(contradictions.length > 0
+      ? [
+          {
+            id: "contradictions",
+            label: "Where sources disagree",
+            node: <ContradictionsSection contradictions={contradictions} />,
+          },
+        ]
+      : []),
     {
       id: "sources",
       label: "Sources",
-      node: <SourcesSection sources={program.sources} verifiedOn={program.verifiedOn} />,
+      node: <SourcesSection program={program} />,
     },
   ];
 
@@ -271,15 +201,12 @@ export default async function ProgramPage({
   return (
     <>
       <ScrollProgress />
-      {/* pt-6, matching every other breadcrumbed page: the trail sits close
-          under the nav, and the full section rhythm starts below it. Pages
-          without breadcrumbs open at the rhythm instead. */}
       <main className="shell pt-6 pb-[var(--rhythm-section)] motion-safe:animate-fade-rise-sm">
         <Breadcrumbs
           back={{ label: "All programs", href: "/programs" }}
           items={[
             { label: "Programs", href: "/programs" },
-            { label: program.school, href: `/programs/${schoolSlug}` },
+            { label: program.university, href: `/programs/${schoolSlug}` },
             { label: program.name },
           ]}
         />
@@ -317,37 +244,45 @@ export default async function ProgramPage({
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 function ProgramHeader({ program, today }: { program: Program; today: string }) {
-  const categoryLabel = getCategoryLabel(program.category) ?? program.category;
-  const gatekeepingDescription = getGatekeepingDescription(program.gatekeeping);
+  const categoryLabel = getCategoryLabel(program.category);
+  const verified = getVerificationDate();
 
   // The first screen on a phone has to answer three things: what is this, do I
-  // need a supplementary application, when is it due. Everything else — seats,
-  // applicant counts, the full OUAC list — waits until below the fold.
-  const nextDate = nextDatedEntry(program.timeline, today);
+  // need a supplementary application, when is it due.
+  const nextDate = nextDeadlineFor(program, today);
+  const enrollment = program.enrollment;
 
   return (
     <header className="mt-8">
       <div className="grid-12">
         <div className="col-span-12 lg:col-span-8">
           <p className="text-label label-mono text-silver">
-            {program.school} · {program.campus}
+            {program.university} · {program.campus}
           </p>
           <h1 className="mt-3 text-h1 uppercase text-metallic">{program.name}</h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Pill title={gatekeepingDescription}>
-              {GATEKEEPING_LABELS[program.gatekeeping]}
-            </Pill>
+            <GatekeepingBadge programId={program.id} />
             <span className="text-small text-muted-foreground">{categoryLabel}</span>
           </div>
 
-          {/* Templated sentences selected by field values — see
-              lib/program-meaning.ts for the full fragment list and the field
-              each claim maps to. */}
+          {/* Sentences selected by field values — see lib/program-meaning.ts
+              for the field each line maps to. */}
           <div className="measure mt-5 flex flex-col gap-2">
             {whatThisMeans(program).map((line) => (
-              <p key={line.source} className="text-body text-muted-foreground">
+              <p
+                key={line.source}
+                className={cn(
+                  "text-body",
+                  line.openQuestion ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
                 {line.text}
+                {line.inferred && (
+                  <span className="ml-2 align-middle text-label label-mono text-silver">
+                    inferred
+                  </span>
+                )}
               </p>
             ))}
           </div>
@@ -362,17 +297,17 @@ function ProgramHeader({ program, today }: { program: Program; today: string }) 
           <dd
             className={cn(
               "data mt-2 text-h3",
-              program.suppApp.required
+              program.supp_app_required
                 ? "font-bold text-foreground"
-                : "font-medium text-muted-foreground"
+                : "font-medium text-muted-foreground",
             )}
           >
-            {program.suppApp.required ? "Required" : "Not required"}
+            {program.supp_app_required ? "Required" : "Not required"}
           </dd>
         </div>
 
         <div>
-          <dt className="text-label label-mono text-silver">Next date</dt>
+          <dt className="text-label label-mono text-silver">Next deadline</dt>
           <dd className="mt-2">
             {nextDate ? (
               <DateStamp item={nextDate} size="sm" />
@@ -389,60 +324,31 @@ function ProgramHeader({ program, today }: { program: Program; today: string }) 
         </div>
 
         <div>
-          <dt className="text-label label-mono text-silver">Seats</dt>
+          <dt className="text-label label-mono text-silver">Enrolment</dt>
           <dd className="mt-2">
-            {program.seats === null ? (
-              <Pill>Not published</Pill>
-            ) : (
+            {enrollment ? (
               <span className="data text-h3 font-semibold text-foreground">
-                {program.seats.toLocaleString("en-CA")}
+                {enrollment.text}
               </span>
+            ) : (
+              <Pill>Not published</Pill>
             )}
           </dd>
-          {program.seatsNote && (
-            <dd className="mt-1.5 max-w-[22rem] text-small text-muted-foreground">
-              {program.seatsNote}
-            </dd>
-          )}
         </div>
 
-        {program.applicants ? (
-          <div>
-            <dt className="text-label label-mono text-silver">Applicants</dt>
-            <dd className="data mt-2 text-h3 font-semibold text-foreground">
-              {program.applicants.figure}
-              {/* Community figures never lose their qualifier. */}
-              {program.applicants.source === "community" && (
-                <span className="ml-2 align-middle text-label label-mono font-normal text-silver">
-                  self-reported
-                </span>
-              )}
-            </dd>
-            {program.applicants.note && (
-              <dd className="mt-1.5 max-w-[22rem] text-small text-muted-foreground">
-                {program.applicants.note}
-              </dd>
-            )}
-          </div>
-        ) : null}
+        <div>
+          <dt className="text-label label-mono text-silver">Faculty</dt>
+          <dd className="mt-2 text-body text-foreground">{program.faculty}</dd>
+        </div>
       </dl>
-
-      {/* The gatekeeping definition used to be printed here as well; it is now
-          the first line of "What this means" above, and printing it twice on
-          one screen said nothing the second time. */}
 
       <OuacCodes program={program} />
 
       {/* The protection line. Deliberately an instruction and a date, with no
-          assertion about how universities behave: an earlier version said
-          "Official pages change without notice", which is a claim about the
-          world that no field in the dataset supports. */}
+          assertion about how universities behave. */}
       <p className="measure mt-6 border-l-2 border-silver pl-4 text-small text-muted-foreground">
-        Verified{" "}
-        <time dateTime={program.verifiedOn} className="data text-foreground">
-          {formatDate(program.verifiedOn)}
-        </time>
-        . Confirm against{" "}
+        Verified <span className="data text-foreground">{verified}</span>. Confirm
+        against{" "}
         <a
           href="#sources"
           className="rounded-sm text-foreground underline decoration-silver underline-offset-4 outline-none transition-colors hover:decoration-silver-light focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
@@ -459,856 +365,574 @@ function OuacCodes({ program }: { program: Program }) {
   return (
     <div className="mt-8">
       <p className="text-label label-mono text-silver">
-        OUAC code{program.ouacCodes.length === 1 ? "" : "s"}
+        OUAC code{program.ouac_codes.length === 1 ? "" : "s"}
       </p>
-      {/* Survives one code and survives ten (U of T Engineering) without
-          changing shape — the columns just fill. */}
+      {/* Survives one code and survives twelve (McMaster Engineering I) without
+          changing shape — on a phone it is a single column of rows, so the
+          count only makes the list longer, never wider. */}
       <ul className="mt-3 grid grid-cols-1 gap-x-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-3">
-        {program.ouacCodes.map((code) => (
+        {program.ouac_codes.map((code) => (
           <li
-            key={code.code}
+            key={`${code.code}-${code.program}`}
             className="flex items-baseline gap-3 border-b border-line py-2.5"
           >
             <CopyCode code={code.code} />
-            <span className="text-small text-muted-foreground">{code.label}</span>
+            <span className="min-w-0 text-small text-muted-foreground">
+              {code.program}
+            </span>
           </li>
         ))}
       </ul>
-      {program.codeNote && (
-        <p className="measure mt-3 text-small text-muted-foreground">{program.codeNote}</p>
-      )}
+      <LabelledDetail label="" claim={program.codes_note} />
     </div>
   );
 }
 
-/* ── Sections ────────────────────────────────────────────────────────────── */
-
-/** The soonest entry that still has a date ahead of it, for the header strip. */
-function nextDatedEntry(timeline: TimelineEntry[], today: string): DatedItem | null {
-  const dated = timeline
-    .map((entry) => resolveEntry(entry, today))
-    .filter((item) => item.date !== null)
-    .sort((a, b) => a.date!.localeCompare(b.date!));
-
-  return dated.find((item) => item.daysRemaining! >= 0) ?? dated.at(-1) ?? null;
-}
+/* ── Timeline ────────────────────────────────────────────────────────────── */
 
 function TimelineSection({
-  timeline,
+  program,
   today,
   tightDates,
 }: {
-  timeline: TimelineEntry[];
+  program: Program;
   today: string;
-  /** Confirmed dates that fall within 14 days of another confirmed date. */
   tightDates: Set<string>;
 }) {
-  const items = timeline.map((entry) => resolveEntry(entry, today));
+  const rows = program.deadlines.map((deadline) => ({
+    deadline,
+    item: resolveDeadline(deadline, today),
+  }));
+
+  // Prior-cycle rows are separated out rather than sorted in. They are a
+  // previous cycle and must never sit in the same list as this cycle's dates.
+  const current = rows.filter(({ item }) => !item.isPriorCycle);
+  const prior = rows.filter(({ item }) => item.isPriorCycle);
 
   return (
-    <ol className="border-l border-line">
-      {items.map((item, index) => (
-        <li
-          key={index}
-          className={cn(
-            "relative pb-8 pl-6 last:pb-0",
-            "before:absolute before:top-1.5 before:-left-[4.5px] before:size-2 before:rounded-full before:ring-4 before:ring-background",
-            // The marker's weight carries the same urgency the type does.
-            item.state === "imminent"
-              ? "before:bg-silver-light"
-              : item.critical
-                ? "before:bg-silver"
-                : "before:bg-silver-dark"
-          )}
-        >
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-            <DateStamp item={item} size="md" />
-            {item.critical && <Pill>Critical</Pill>}
-            {/* Marks a confirmed date sitting within a fortnight of another
-                confirmed date on this same program — Queen's Commerce's 1 and
-                15 February, for instance. States the fact, nothing more. */}
-            {item.date && tightDates.has(item.date) && (
-              <Pill tone="muted">Within 14 days of another date</Pill>
-            )}
-          </div>
-          <p
-            className={cn(
-              "measure mt-2 text-body",
-              item.critical ? "font-medium text-foreground" : "text-muted-foreground"
-            )}
+    <div className="flex flex-col gap-8">
+      <ul className="flex flex-col">
+        {current.map(({ deadline, item }, index) => (
+          <li
+            key={`${deadline.key}-${index}`}
+            className="flex flex-col gap-2 border-b border-line py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
           >
-            {item.label}
+            <div className="min-w-0">
+              <p className="text-body text-foreground">{item.label}</p>
+              {/* date_text is display copy from the data — shown, never parsed. */}
+              {item.dateText && item.state !== "later" && (
+                <p className="mt-1 measure text-small text-muted-foreground">
+                  {item.dateText}
+                </p>
+              )}
+              <div className="mt-1.5">
+                <Claim claim={deadline}>{null}</Claim>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+              {item.dateRange ? (
+                <span className="data text-small text-foreground">
+                  {formatDateRange(item.dateRange)}
+                </span>
+              ) : (
+                <DateStamp item={item} size="sm" />
+              )}
+              {item.date && tightDates.has(item.date) && (
+                <span className="text-label label-mono text-silver">
+                  close to another date
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {prior.length > 0 && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">
+            Previous cycle — for reference only
           </p>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function YearThreeEntrySection({ yearThreeEntry }: { yearThreeEntry: YearThreeEntry }) {
-  return (
-    <>
-      <h3 className="text-h3 text-foreground">{yearThreeEntry.title}</h3>
-      <DataTable
-        className="mt-5"
-        caption="Routes into year three"
-        rows={yearThreeEntry.routes}
-        rowKey={(_, index) => String(index)}
-        columns={[
-          { key: "name", header: "Route", render: (r) => <span className="font-medium">{r.name}</span> },
-          { key: "requirement", header: "Requirement", render: (r) => r.requirement },
-          { key: "outcome", header: "Outcome", render: (r) => r.outcome },
-        ]}
-      />
-      <p className="measure mt-4 text-small text-muted-foreground">
-        {yearThreeEntry.moduleFilter}
-      </p>
-    </>
-  );
-}
-
-function PostSystemSection({ postSystem }: { postSystem: PostSystem }) {
-  return (
-    <>
-      <p className="measure text-body text-foreground">{postSystem.body}</p>
-      {postSystem.types && postSystem.types.length > 0 && (
-        <DataTable
-          className="mt-6"
-          caption="Program types and their requirements"
-          rows={postSystem.types}
-          rowKey={(_, index) => String(index)}
-          columns={[
-            { key: "name", header: "Name", render: (t) => <span className="font-medium">{t.name}</span> },
-            { key: "requirement", header: "Requirement", render: (t) => t.requirement },
-          ]}
-        />
+          <ul className="mt-4 flex flex-col gap-3">
+            {prior.map(({ deadline, item }, index) => (
+              <li key={`${deadline.key}-prior-${index}`} className="flex flex-col gap-1">
+                <p className="text-small text-muted-foreground">{item.label}</p>
+                {item.dateText && (
+                  <p className="measure text-small text-muted-foreground">
+                    {item.dateText}
+                  </p>
+                )}
+                {item.dateRange && (
+                  <span className="data text-small text-muted-foreground">
+                    {formatDateRange(item.dateRange)}
+                  </span>
+                )}
+                <Pill tone="muted">Last cycle</Pill>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
-      {postSystem.mechanics && (
-        <p className="measure mt-4 text-small text-muted-foreground">{postSystem.mechanics}</p>
-      )}
-    </>
+
+      <CollisionsNote program={program} />
+    </div>
   );
 }
 
-function RulesSection({ rules }: { rules: string[] }) {
+function CollisionsNote({ program }: { program: Program }) {
+  const collisions = dateCollisions(program);
+  if (collisions.length === 0) return null;
+
+  // Both dates and both names, and nothing else — no ranking, no advice about
+  // which to do first.
   return (
-    <ul className="measure flex flex-col gap-3">
-      {rules.map((rule, index) => (
-        <li key={index} className="flex gap-4 text-body text-foreground">
-          <span aria-hidden className="data mt-px shrink-0 text-small text-silver">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <span>{rule}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="border-t border-line pt-6">
+      <p className="text-label label-mono text-silver">Dates close to other programs</p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {collisions.map((collision, index) => (
+          <li key={index} className="text-small text-muted-foreground">
+            <Link
+              href={collision.href}
+              className="text-foreground underline decoration-silver underline-offset-4 transition-colors duration-150 hover:decoration-silver-light motion-reduce:transition-none"
+            >
+              {collision.program.short_name}
+            </Link>{" "}
+            — {collision.other.label}, {formatDate(collision.other.date)} (
+            {collision.daysApart === 0
+              ? "same day as"
+              : `${collision.daysApart} days from`}{" "}
+            {collision.own.label})
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-function SuppAppSection({ program, today }: { program: Program; today: string }) {
-  const suppApp = program.suppApp;
+/* ── Supplementary application ───────────────────────────────────────────── */
 
-  if (!suppApp.required) {
+function SuppAppSection({
+  program,
+  supps,
+}: {
+  program: Program;
+  supps: SupplementaryApplication[];
+}) {
+  if (supps.length === 0) {
     return (
-      <>
-        <p className="text-h3 font-semibold text-foreground">No supplementary application.</p>
-        <p className="measure mt-2 text-body text-muted-foreground">{suppApp.note}</p>
-      </>
+      <Claim claim={program.supplementary_summary} />
     );
   }
 
-  const questionGroups: { title: string; items?: SuppAppComponent[] }[] = [
-    { title: "Components", items: suppApp.components },
-    { title: "Known in advance", items: suppApp.known },
-    { title: "Drawn at random", items: suppApp.random },
-  ].filter((group) => (group.items?.length ?? 0) > 0);
-
-  const deadlineItem: DatedItem = suppApp.deadline.confirmed && suppApp.deadline.date
-    ? {
-        ...resolveEntry(
-          {
-            date: suppApp.deadline.date,
-            label: suppApp.deadline.text,
-            critical: true,
-            confirmed: true,
-          },
-          today
-        ),
-      }
-    : {
-        state: "unpublished",
-        date: null,
-        daysRemaining: null,
-        label: suppApp.deadline.text,
-        critical: true,
-      };
-
   return (
-    <>
-      {/* The deadline leads. It is the single thing most readers came for, and
-          it used to sit two thirds of the way down this section. */}
-      <div className="border-y border-line-strong py-6">
-        <p className="text-label label-mono text-silver">Deadline</p>
-        <div className="mt-3">
-          <DateStamp item={deadlineItem} size="lg" />
-        </div>
-        <p className="measure mt-3 text-body text-muted-foreground">
-          {suppApp.deadline.text}
-        </p>
-        {suppApp.deadline.estimate && (
-          <p className="measure mt-4 border-l-2 border-silver-dark pl-4 text-small text-muted-foreground">
-            <span className="text-label label-mono text-silver">Estimate, not a date </span>
-            <br />
-            {suppApp.deadline.estimate}
-          </p>
-        )}
-      </div>
+    <div className="flex flex-col gap-10">
+      <Claim claim={program.supplementary_summary} />
 
-      {(suppApp.formatUnconfirmed || suppApp.formatWarning) && (
-        <div className="mt-6 surface-lit rounded-lg border border-silver/60 bg-card p-4">
-          <p className="text-label label-mono text-silver-light">Format not yet confirmed</p>
-          {suppApp.formatWarning && (
-            <p className="measure mt-2 text-small text-foreground">{suppApp.formatWarning}</p>
-          )}
-        </div>
-      )}
-
-      <p className="measure mt-6 text-body text-foreground">{suppApp.format}</p>
-      {suppApp.note && (
-        <p className="measure mt-3 text-small text-muted-foreground">{suppApp.note}</p>
-      )}
-      {suppApp.sitting && (
-        <p className="measure mt-2 text-small text-muted-foreground">{suppApp.sitting}</p>
-      )}
-
-      <dl className="mt-6 grid grid-cols-1 gap-x-[var(--gutter)] gap-y-4 sm:grid-cols-3">
-        <Field label="Platform" value={suppApp.platform} />
-        {suppApp.limit && <Field label="Limit" value={suppApp.limit} mono />}
-        {suppApp.evaluators && <Field label="Evaluators" value={suppApp.evaluators} />}
-        <Field
-          label="Fee"
-          value={suppApp.fee === null ? <Pill>Not published</Pill> : suppApp.fee}
-          mono={suppApp.fee !== null}
-          note={suppApp.feeNote}
-        />
-        <Field
-          label="Questions published in advance"
-          value={
-            suppApp.questionsPublishedInAdvance === "partial"
-              ? "Partially"
-              : suppApp.questionsPublishedInAdvance
-                ? "Yes"
-                : "No"
-          }
-          mono
-        />
-        <Field
-          label="Rubric published"
-          value={suppApp.rubricPublished ? "Yes" : "No"}
-          mono
-          note={suppApp.rubricNote}
-        />
-      </dl>
-
-      {questionGroups.length > 0 && (
-        <div className="mt-10">
-          <h3 className="text-h3 text-foreground">Questions</h3>
-          <div className="mt-4 flex flex-col gap-6">
-            {questionGroups.map((group) => (
-              <div key={group.title}>
-                {questionGroups.length > 1 && (
-                  <p className="text-label label-mono text-silver">{group.title}</p>
-                )}
-                <ul className="mt-3 flex flex-col gap-3">
-                  {group.items!.map((item, index) => (
-                    <Card key={index} as="li">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Pill tone="muted" className="capitalize">
-                          {item.type}
-                        </Pill>
-                        {item.limit && (
-                          <span className="data text-small text-silver">{item.limit}</span>
-                        )}
-                      </div>
-                      <p className="mt-3 text-body text-foreground">{item.prompt}</p>
-                      {item.time && (
-                        <p className="data mt-2 text-small text-silver">{item.time}</p>
-                      )}
-                    </Card>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      {supps.map((supp) => (
+        <div key={supp.id} className="flex flex-col gap-6 border-t border-line pt-6">
+          <div>
+            <p className="text-label label-mono text-silver">{supp.name}</p>
+            {/* When there is no supplementary application, say so plainly
+                rather than omitting the section and leaving a gap. */}
+            <p className="mt-2 text-body text-foreground">
+              {supp.required
+                ? "A supplementary application is required."
+                : "No supplementary application."}
+            </p>
           </div>
-          {suppApp.questionsNote && (
-            <p className="measure mt-4 text-small text-muted-foreground">
-              {suppApp.questionsNote}
-            </p>
-          )}
-          {suppApp.structureNote && (
-            <p className="measure mt-2 text-small text-muted-foreground">
-              {suppApp.structureNote}
-            </p>
-          )}
-        </div>
-      )}
 
-      {suppApp.questions && suppApp.questions.length > 0 && (
-        <div className="mt-10">
-          <h3 className="text-h3 text-foreground">Published questions</h3>
-          <ol className="measure mt-4 flex flex-col gap-3">
-            {suppApp.questions.map((question, index) => (
-              <li key={index} className="flex gap-4 text-body text-foreground">
-                <span aria-hidden className="data mt-px shrink-0 text-small text-silver">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span>{question}</span>
-              </li>
-            ))}
-          </ol>
-          {suppApp.questionsNote && (
-            <p className="measure mt-4 text-small text-muted-foreground">
-              {suppApp.questionsNote}
-            </p>
+          {supp.required && (
+            <>
+              <LabelledDetail label="Platform" claim={supp.platform} />
+              <SuppFee supp={supp} />
+              <LabelledDetailList label="Components" claims={supp.components} />
+              <LabelledDetail label="Weighting" claim={supp.weighting} showSources />
+
+              {/* The long tail: ~50 subfields, 28 of which appear exactly once.
+                  They fall through the generic renderer rather than each
+                  getting a bespoke layout. */}
+              <GenericDetails
+                record={supp as unknown as Record<string, unknown>}
+                skip={[
+                  "platform",
+                  "fee",
+                  "components",
+                  "weighting",
+                  "traps",
+                  "required_for",
+                ]}
+              />
+            </>
           )}
         </div>
-      )}
-
-      {suppApp.competencies && suppApp.competencies.length > 0 && (
-        <div className="mt-8">
-          <p className="text-label label-mono text-silver">Assessed on</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {suppApp.competencies.map((competency) => (
-              <Pill key={competency} tone="muted" wrap>
-                {competency}
-              </Pill>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {suppApp.rubric && <RubricDetail rubric={suppApp.rubric} />}
-
-      {/* Both describe the supplementary application itself, so they live in
-          this section rather than in a catch-all at the foot of the page. */}
-      {program.aiScoring && <AiScoringDetail aiScoring={program.aiScoring} />}
-      {program.lookingFor && <LookingForDetail lookingFor={program.lookingFor} />}
-
-      {suppApp.invite && (
-        <p className="measure mt-6 text-small text-muted-foreground">{suppApp.invite}</p>
-      )}
-
-      {suppApp.mismatch && (
-        <div className="mt-8 surface-lit rounded-lg border border-silver/60 bg-card p-4">
-          <p className="text-label label-mono text-silver-light">Mismatch</p>
-          <p className="measure mt-2 text-body text-foreground">{suppApp.mismatch}</p>
-        </div>
-      )}
-
-      <div className="mt-10">
-        <h3 className="text-h3 text-foreground">Weighting</h3>
-        <p className="measure mt-3 text-body text-foreground">{suppApp.weighting.summary}</p>
-
-        {suppApp.weighting.keyLine && (
-          <p className="measure mt-5 border-l-2 border-silver-light pl-4 text-h3 font-medium text-foreground">
-            {suppApp.weighting.keyLine}
-          </p>
-        )}
-
-        {suppApp.weighting.formula && (
-          <p className="data mt-5 w-fit rounded-md border border-line bg-surface-raised px-3 py-2 text-small text-foreground">
-            {suppApp.weighting.formula}
-          </p>
-        )}
-        {suppApp.weighting.notPublished && suppApp.weighting.notPublished.length > 0 && (
-          <ul className="mt-4 flex flex-col gap-1.5">
-            {suppApp.weighting.notPublished.map((item, index) => (
-              <li key={index} className="text-small text-muted-foreground">
-                <span className="text-label label-mono text-silver">Not published </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        )}
-        {suppApp.weighting.note && (
-          <p className="measure mt-4 text-small text-muted-foreground">
-            {suppApp.weighting.note}
-          </p>
-        )}
-        {suppApp.weighting.communityInterpretation && (
-          <p className="measure mt-4 text-small text-muted-foreground">
-            <span className="text-label label-mono text-silver">
-              Community interpretation, unofficial{" "}
-            </span>
-            <br />
-            {suppApp.weighting.communityInterpretation}
-          </p>
-        )}
-        <div className="mt-4">
-          {suppApp.weighting.official ? (
-            <Pill tone="muted">Officially published</Pill>
-          ) : (
-            <Pill>Not officially published</Pill>
-          )}
-        </div>
-
-        {suppApp.weighting.clusters && suppApp.weighting.clusters.length > 0 && (
-          <>
-            <ClusterScatterChart program={program} />
-            <WeightingClusters clusters={suppApp.weighting.clusters} />
-            {suppApp.weighting.clustersSource && (
-              <p className="mt-3 text-small text-muted-foreground">
-                <span className="text-label label-mono text-silver">Source </span>
-                {suppApp.weighting.clustersSource}
-              </p>
-            )}
-          </>
-        )}
-      </div>
-    </>
+      ))}
+    </div>
   );
 }
 
-function Field({
-  label,
-  value,
-  mono,
-  note,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-  note?: string;
-}) {
+function SuppFee({ supp }: { supp: SupplementaryApplication }) {
+  const fee = supp.fee;
+  if (!fee) return null;
+
+  // `fee.value.amount` may be null. null is not zero and not free.
+  const amount = fee.value?.amount ?? null;
+
   return (
     <div>
-      <dt className="text-label label-mono text-silver">{label}</dt>
-      <dd className={cn("mt-2 text-body text-foreground", mono && "data")}>{value}</dd>
-      {note && <dd className="mt-1.5 text-small text-muted-foreground">{note}</dd>}
+      <p className="text-label label-mono text-silver">Fee</p>
+      <div className="mt-2">
+        {amount === null ? (
+          <div className="flex flex-col gap-2">
+            <Pill>Not published</Pill>
+            <Claim claim={fee} />
+          </div>
+        ) : (
+          <Claim claim={fee} />
+        )}
+      </div>
     </div>
   );
 }
 
-function RubricDetail({ rubric }: { rubric: SuppAppRubric }) {
-  return (
-    <div className="mt-10">
-      <h3 className="text-h3 text-foreground">Rubric</h3>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {rubric.bands.map((band) => (
-          <Pill key={band} tone="muted" wrap>
-            {band}
-          </Pill>
-        ))}
-      </div>
-      <div className="mt-6 grid gap-6 sm:grid-cols-2">
-        <div>
-          <p className="text-label label-mono text-silver">Written criteria</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {rubric.written.map((criterion, index) => (
-              <li key={index} className="text-small text-muted-foreground">
-                {criterion}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-label label-mono text-silver">Video criteria</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {rubric.video.map((criterion, index) => (
-              <li key={index} className="text-small text-muted-foreground">
-                {criterion}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      <p className="measure mt-6 border-l-2 border-silver-light pl-4 text-body text-foreground">
-        <span className="text-label label-mono text-silver">Key insight</span>
-        <br />
-        {rubric.keyInsight}
-      </p>
-      <p className="measure mt-4 text-small text-muted-foreground">
-        Not scored: {rubric.notScored}
-      </p>
-    </div>
-  );
-}
+/* ── Required courses ────────────────────────────────────────────────────── */
 
-function WeightingClusters({ clusters }: { clusters: SuppAppWeightingCluster[] }) {
-  return (
-    <DataTable
-      className="mt-8"
-      caption="Supplementary application score against GPA against outcome"
-      rows={clusters}
-      rowKey={(_, index) => String(index)}
-      columns={[
-        { key: "supp", header: "Supp app score", numeric: true, nowrap: true, render: (c) => c.suppAppScore },
-        { key: "gpa", header: "GPA", render: (c) => c.gpa },
-        {
-          key: "outcome",
-          header: "Outcome",
-          render: (c) =>
-            c.outcome === "Offer" ? (
-              <span className="font-semibold text-foreground">{c.outcome}</span>
-            ) : (
-              <span className="text-muted-foreground">{c.outcome}</span>
-            ),
-        },
-        {
-          key: "count",
-          header: "Count",
-          numeric: true,
-          render: (c) => (c.count === null ? <Pill>Not published</Pill> : c.count.toLocaleString("en-CA")),
-        },
-      ]}
-    />
-  );
-}
-
-function CoursesSection({ courses }: { courses: Courses }) {
-  return (
-    <>
-      <p className="measure text-body text-foreground">{courses.total}</p>
-      {courses.required.length > 0 && (
-        <div className="mt-6">
-          <p className="text-label label-mono text-silver">Required</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {courses.required.map((course, index) => (
-              <CourseChip key={index} course={course} />
-            ))}
-          </ul>
-        </div>
-      )}
-      {courses.recommended.length > 0 && (
-        <div className="mt-6">
-          <p className="text-label label-mono text-silver">Recommended</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {courses.recommended.map((course, index) => (
-              <CourseChip key={index} course={course} muted />
-            ))}
-          </ul>
-        </div>
-      )}
-      {/* A second required list for a stream within the same program, which
-          used to surface only as "Required I Bio Med" in the generic bin. */}
-      {courses.requiredIBioMed && courses.requiredIBioMed.length > 0 && (
-        <div className="mt-6">
-          <p className="text-label label-mono text-silver">Required for iBioMed</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {courses.requiredIBioMed.map((course, index) => (
-              <CourseChip key={index} course={course} />
-            ))}
-          </ul>
-        </div>
-      )}
-      {courses.notes && (
-        <p className="measure mt-5 text-small text-muted-foreground">{courses.notes}</p>
-      )}
-    </>
-  );
-}
-
-function CourseChip({ course, muted }: { course: string; muted?: boolean }) {
-  return (
-    // Course labels come straight from the dataset and range from "ENG4U" to a
-    // full sentence, so they wrap rather than forcing the page wide.
-    <li className="max-w-full">
-      <Pill wrap tone={muted ? "muted" : "default"} className="normal-case">
-        {course}
-      </Pill>
-    </li>
-  );
-}
-
-function AveragesSection({
-  averages,
-  adjustmentFactor,
-}: {
-  averages: AverageEntry[];
-  adjustmentFactor?: AdjustmentFactor;
-}) {
-  const official = averages.filter((average) => average.type === "official");
-  const community = averages.filter((average) => average.type === "community");
+function CoursesSection({ program }: { program: Program }) {
+  const required = program.required_courses;
+  const recommended = program.recommended_courses;
+  const inherited = getInheritedSource(program, "required_courses");
 
   return (
-    <>
-      {official.length > 0 && (
-        <ul className="flex flex-col gap-6">
-          {official.map((average, index) => (
-            <AverageEntryRow key={index} average={average} />
+    <div className="flex flex-col gap-8">
+      <div>
+        <ul className="flex flex-col">
+          {(required.value ?? []).map((course, index) => (
+            <li
+              key={index}
+              className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line py-2.5"
+            >
+              <span className="data text-body text-foreground">{course.course}</span>
+              {course.minimum_grade !== null && (
+                <span className="text-small text-muted-foreground">
+                  minimum {course.minimum_grade}%
+                </span>
+              )}
+              {course.evaluable === false && (
+                <Pill tone="muted" wrap>
+                  not checkable
+                </Pill>
+              )}
+              {course.note && (
+                <span className="measure text-small text-muted-foreground">
+                  {course.note}
+                </span>
+              )}
+            </li>
           ))}
         </ul>
-      )}
 
-      {/* Community figures stay visually subordinate: quieter, after the
-          official ones, and never without the label that says what they are.
-          No characterisation is added here — whatever a given entry's `note`
-          says is the whole of it. */}
-      {community.length > 0 && (
-        <div className="mt-8 border-t border-line pt-6">
-          <p className="text-label label-mono text-silver">Community-reported</p>
-          <ul className="mt-4 flex flex-col gap-4">
-            {community.map((average, index) => (
-              <AverageEntryRow key={index} average={average} quiet />
+        {inherited && (
+          <p className="mt-3 text-small text-muted-foreground">
+            Same as{" "}
+            <Link
+              href={`/programs/${getProgramById(inherited.programId)?.university_id}/${inherited.programId}`}
+              className="text-foreground underline decoration-silver underline-offset-4"
+            >
+              {inherited.programName}
+            </Link>
+            .
+          </p>
+        )}
+
+        <div className="mt-4">
+          <Claim claim={required} showSources />
+        </div>
+      </div>
+
+      {(recommended.value ?? []).length > 0 && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">Recommended</p>
+          <ul className="mt-3 flex flex-col">
+            {(recommended.value ?? []).map((course, index) => (
+              <li key={index} className="border-b border-line py-2.5">
+                <span className="data text-body text-foreground">{course.course}</span>
+              </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Waterloo's adjustment factor describes how the admission average is
-          arrived at, so it belongs beside the averages rather than in a bin
-          at the bottom of the page. */}
-      {adjustmentFactor && (
-        <div className="mt-8 border-t border-line pt-6">
-          <p className="text-label label-mono text-silver">Adjustment factor</p>
-          <p className="measure mt-3 text-body text-foreground">{adjustmentFactor.body}</p>
-          {adjustmentFactor.note && (
-            <p className="measure mt-3 text-small text-muted-foreground">
-              {adjustmentFactor.note}
-            </p>
+      <LabelledDetail label="Chemistry" claim={program.chemistry_note} />
+    </div>
+  );
+}
+
+/* ── Averages ────────────────────────────────────────────────────────────── */
+
+function AveragesSection({ program }: { program: Program }) {
+  const minimum = classifyOfficialMinimum(program);
+  const ranges = gradeRanges(program);
+  const community = program.community_competitiveness;
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* 1. The published minimum. A null value is a real answer — the
+             university publishes no cutoff — not a gap to fill. */}
+      <div>
+        <p className="text-label label-mono text-silver">Published minimum</p>
+        <div className="mt-2">
+          {minimum.kind === "none" ? (
+            <div className="flex flex-col gap-2">
+              <Pill>No published cutoff</Pill>
+              <Claim claim={minimum.claim} showSources />
+            </div>
+          ) : (
+            <Claim claim={minimum.claim} showSources />
+          )}
+        </div>
+        {minimum.kind === "courseFloor" && (
+          <p className="mt-2 measure text-small text-muted-foreground">
+            This is a minimum on individual required courses, not on the overall
+            average.
+          </p>
+        )}
+      </div>
+
+      {/* 2. Competitiveness ranges. Prose, exactly as written — never parsed
+             into numbers, never charted, never averaged. */}
+      {ranges.length > 0 && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">Grade ranges</p>
+          <ul className="mt-4 flex flex-col gap-4">
+            {ranges.map((range, index) => (
+              <li key={index} className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-body text-foreground">{range.scope}</span>
+                  <span className="data text-body text-foreground">{range.range}</span>
+                  {range.sourceLabel && (
+                    <span className="text-label label-mono text-silver">
+                      {range.sourceLabel}
+                    </span>
+                  )}
+                </div>
+                <Claim claim={range.claim}>{null}</Claim>
+              </li>
+            ))}
+          </ul>
+
+          {/* Required context where it exists, not optional decoration. */}
+          {program.grade_range_note && (
+            <div className="mt-4">
+              <Claim claim={program.grade_range_note} />
+            </div>
           )}
         </div>
       )}
-    </>
-  );
-}
 
-/**
- * One published figure: source, then figure, then note.
- *
- * The note is an annotation on the figure and is nested inside this component
- * rather than rendered as a sibling, so there is no arrangement of the data
- * that produces a note with no figure above it.
- */
-function AverageEntryRow({ average, quiet }: { average: AverageEntry; quiet?: boolean }) {
-  return (
-    <li>
-      {/* Stat carries the source-then-figure pair; the note is a sibling of
-          that pair inside this row, never a sibling of the list item, so a
-          note can't be rendered for an entry whose figure wasn't. */}
-      <Stat
-        value={average.figure}
-        label={average.source}
-        size={quiet ? "sm" : "md"}
-        labelPosition="above"
-      />
-      {average.note && (
-        <p className="measure mt-2 text-small text-muted-foreground">{average.note}</p>
+      {/* 3. Community figures last, visually subordinate, never the headline
+             number and never a threshold. */}
+      {community.length > 0 && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">
+            Applicant-reported — not official
+          </p>
+          <div className="mt-4">
+            <ClaimList claims={community} quiet />
+          </div>
+        </div>
       )}
-    </li>
+
+      <LabelledDetailList label="Admissions statistics" claims={program.admissions_statistics} />
+    </div>
   );
 }
 
-function TrapsSection({ traps }: { traps: Trap[] }) {
-  return (
-    <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {traps.map((trap, index) => (
-        <Card key={index} as="li" className="flex flex-col">
-          <p className="data text-label text-silver">{String(index + 1).padStart(2, "0")}</p>
-          <p className="mt-3 text-h3 font-semibold text-foreground">{trap.title}</p>
-          <p className="mt-2 text-body text-muted-foreground">{trap.body}</p>
-        </Card>
-      ))}
-    </ul>
-  );
-}
+/* ── Traps ───────────────────────────────────────────────────────────────── */
 
-function PrepSection({ prep }: { prep: NonNullable<Program["prep"]> }) {
-  return (
-    <>
-      <dl className="grid grid-cols-1 gap-x-[var(--gutter)] gap-y-4 sm:grid-cols-2">
-        <Field label="Shape" value={prep.shape} />
-        <Field label="Time" value={prep.time} mono />
-      </dl>
-      <p className="measure mt-5 text-body text-muted-foreground">{prep.note}</p>
-    </>
-  );
-}
-
-function SourcesSection({ sources, verifiedOn }: { sources: Sources; verifiedOn: string }) {
-  return (
-    <>
-      <div className="grid grid-cols-1 gap-x-[var(--gutter)] gap-y-8 sm:grid-cols-2">
-        {sources.official.length > 0 && (
-          <div>
-            <p className="text-label label-mono text-silver">Official</p>
-            <ul className="mt-3 flex flex-col gap-2">
-              {sources.official.map((source, index) => (
-                <li key={index} className="border-b border-line pb-2 text-small text-foreground">
-                  {source}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {sources.reported.length > 0 && (
-          <div>
-            <p className="text-label label-mono text-silver">Reported</p>
-            <ul className="mt-3 flex flex-col gap-2">
-              {sources.reported.map((source, index) => (
-                <li
-                  key={index}
-                  className="border-b border-line pb-2 text-small text-muted-foreground"
-                >
-                  {source}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-      <p className="mt-8 text-small text-muted-foreground">
-        Verified on{" "}
-        <time dateTime={verifiedOn} className="data text-foreground">
-          {formatDate(verifiedOn)}
-        </time>
-      </p>
-    </>
-  );
-}
-
-/* ── Structured data ─────────────────────────────────────────────────────── */
-
-function ProgramJsonLd({ program, schoolSlug }: { program: Program; schoolSlug: string }) {
-  // Only fields the dataset actually holds. Nothing is inferred, and nothing
-  // that isn't published is asserted.
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "EducationalOccupationalProgram",
-    name: program.name,
-    url: `/programs/${schoolSlug}/${program.id}`,
-    provider: {
-      "@type": "CollegeOrUniversity",
-      name: program.school,
-      address: { "@type": "PostalAddress", addressLocality: program.campus, addressRegion: "ON", addressCountry: "CA" },
-    },
-    programPrerequisites: program.courses.required,
-    ...(program.timeline.find((entry) => entry.confirmed && entry.date)
-      ? {
-          applicationDeadline: program.timeline.find(
-            (entry) => entry.confirmed && entry.date && entry.critical
-          )?.date,
-        }
-      : {}),
-  };
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
-  );
-}
-
-/* ── Sections built from fields that used to land in the generic bin ─────── */
-
-function AccessChainSection({ accessChain }: { accessChain: AccessChain }) {
-  return (
-    <>
-      <ol className="measure flex flex-col gap-3">
-        {accessChain.steps.map((step, index) => (
-          <li key={index} className="flex gap-4 text-body text-foreground">
-            <span aria-hidden className="data mt-px shrink-0 text-small text-silver">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
-      <dl className="mt-6 grid grid-cols-1 gap-x-[var(--gutter)] gap-y-4 sm:grid-cols-2">
-        <Field label="Worst case" value={accessChain.worstCase} />
-        <Field label="Advice" value={accessChain.advice} />
-      </dl>
-    </>
-  );
-}
-
-function MajorsSection({ majors }: { majors: string[] }) {
-  return (
-    <ul className="flex flex-wrap gap-2">
-      {majors.map((major) => (
-        <li key={major} className="max-w-full">
-          <Pill wrap tone="muted" className="normal-case">
-            {major}
-          </Pill>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function AlternativeOfferSection({
-  alternativeOffer,
+function TrapsSection({
+  program,
+  supps,
 }: {
-  alternativeOffer: AlternativeOffer;
+  program: Program;
+  supps: SupplementaryApplication[];
 }) {
-  return (
-    <>
-      <p className="measure text-body text-foreground">{alternativeOffer.body}</p>
-      {alternativeOffer.note && (
-        <p className="measure mt-4 text-small text-muted-foreground">
-          {alternativeOffer.note}
-        </p>
-      )}
-    </>
+  const suppTraps = supps.flatMap((supp) =>
+    (supp.traps ?? []).map((trap) => ({ trap, supp })),
   );
-}
 
-/**
- * Waterloo's disclosure about how the AIF is scored. It describes the
- * supplementary application, so it sits inside that section.
- */
-function AiScoringDetail({ aiScoring }: { aiScoring: AiScoring }) {
   return (
-    <div className="mt-10">
-      <h3 className="text-h3 text-foreground">Scoring</h3>
-      <p className="measure mt-3 text-body text-foreground">{aiScoring.body}</p>
-      {aiScoring.contrast && (
-        <p className="measure mt-3 text-body text-muted-foreground">{aiScoring.contrast}</p>
-      )}
-      {aiScoring.note && (
-        <p className="measure mt-3 text-small text-muted-foreground">{aiScoring.note}</p>
+    <div className="flex flex-col gap-8">
+      {/* stream_traps is present on all 16 programs. Each carries its own
+          claim_type and verification status, and renders through <Claim> like
+          every other fact, so whatever the data says about its provenance is
+          what the page says. */}
+      <ClaimList claims={program.stream_traps} showSources />
+
+      {suppTraps.length > 0 && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">
+            Supplementary application — author analysis
+          </p>
+          <ul className="mt-4 flex flex-col gap-5">
+            {suppTraps.map(({ trap, supp }, index) => (
+              <li key={`${supp.id}-${index}`}>
+                <Claim claim={trap} showSources />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
 }
 
-/**
- * The university's own published statement, quoted, plus the dataset's
- * comparison against the other programs. Rendered as a quotation and
- * attributed so it reads as the school speaking, not as this site.
- */
-function LookingForDetail({ lookingFor }: { lookingFor: LookingFor }) {
+/* ── Additional details (the generic bin) ────────────────────────────────── */
+
+const FIRST_CLASS_FIELDS = [
+  "id",
+  "name",
+  "short_name",
+  "university",
+  "university_id",
+  "campus",
+  "faculty",
+  "degree",
+  "category",
+  "pdf_part",
+  "pdf_pages",
+  "admission_structure",
+  "ouac_codes",
+  "required_courses",
+  "recommended_courses",
+  "official_minimum",
+  "grade_ranges",
+  "grade_range_note",
+  "community_competitiveness",
+  "enrollment",
+  "supplementary_application_ids",
+  "supplementary_summary",
+  "supp_app_required",
+  "deadlines",
+  "stream_traps",
+  "admissions_statistics",
+  "chemistry_note",
+  "codes_note",
+  "content_section_ids",
+  "contradiction_ids",
+  "verification_log_ids",
+  "inherited_from",
+  "tracked_scope",
+];
+
+function hasAdditionalDetails(program: Program): boolean {
   return (
-    <div className="mt-10">
-      <h3 className="text-h3 text-foreground">What the program says it looks for</h3>
-      <blockquote className="measure mt-3 border-l-2 border-silver-light pl-4 text-body text-foreground">
-        {lookingFor.verbatim}
-      </blockquote>
-      {lookingFor.contrast && (
-        <p className="measure mt-4 text-small text-muted-foreground">
-          {lookingFor.contrast}
-        </p>
+    program.fees.length > 0 ||
+    program.other_facts.length > 0 ||
+    program.alternate_offer !== null ||
+    program.conditional_offer_requirement !== null ||
+    program.year3_entry !== null ||
+    program.majors !== null ||
+    (program.related_codes?.length ?? 0) > 0
+  );
+}
+
+function AdditionalDetailsSection({ program }: { program: Program }) {
+  return (
+    <div className="flex flex-col gap-8">
+      <LabelledDetail label="Admission structure" claim={program.admission_structure} />
+      <LabelledDetail label="Alternate offer" claim={program.alternate_offer} />
+      <LabelledDetail
+        label="Conditional offer requirement"
+        claim={program.conditional_offer_requirement}
+      />
+      <LabelledDetail label="Year 3 entry" claim={program.year3_entry} />
+      <LabelledDetail label="Majors" claim={program.majors} />
+
+      {/* other_facts and fees carry their own label in the data. */}
+      {program.other_facts.map((fact, index) => (
+        <div key={`fact-${index}`}>
+          <p className="text-label label-mono text-silver">
+            {typeof fact.value === "string" ? fact.value : fact.label ?? "Detail"}
+          </p>
+          <div className="mt-2">
+            <Claim claim={fact} showSources />
+          </div>
+        </div>
+      ))}
+
+      {program.fees.map((fee, index) => (
+        <div key={`fee-${index}`}>
+          <p className="text-label label-mono text-silver">{fee.label ?? "Fee"}</p>
+          <div className="mt-2">
+            <Claim claim={fee} showSources />
+          </div>
+        </div>
+      ))}
+
+      {(program.related_codes?.length ?? 0) > 0 && (
+        <div>
+          <p className="text-label label-mono text-silver">Related codes</p>
+          <ul className="mt-3 flex flex-col">
+            {program.related_codes!.map((code, index) => (
+              <li
+                key={index}
+                className="flex items-baseline gap-3 border-b border-line py-2.5"
+              >
+                <CopyCode code={code.code} />
+                <span className="text-small text-muted-foreground">{code.program}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
+
+      <GenericDetails
+        record={program as unknown as Record<string, unknown>}
+        skip={[
+          ...FIRST_CLASS_FIELDS,
+          "fees",
+          "other_facts",
+          "alternate_offer",
+          "conditional_offer_requirement",
+          "year3_entry",
+          "majors",
+          "related_codes",
+        ]}
+      />
     </div>
   );
 }
 
-/* ── Computed relationships ──────────────────────────────────────────────── */
+/* ── Related, not published, contradictions, sources ─────────────────────── */
 
 function RelatedSection({ program }: { program: Program }) {
   const gatekeeping = sameGatekeeping(program);
   const category = sameCategoryElsewhere(program);
-  const collisions = dateCollisions(program);
+
+  if (gatekeeping.length === 0 && category.length === 0) {
+    return (
+      <p className="measure text-body text-muted-foreground">
+        No related programs in this dataset.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       {gatekeeping.length > 0 && (
         <div>
-          <p className="text-label label-mono text-silver">Same gatekeeping model</p>
-          <ul className="mt-3 flex flex-col gap-2">
+          <p className="text-label label-mono text-silver">Evaluated the same way</p>
+          <ul className="mt-3 flex flex-col">
             {gatekeeping.map(({ program: other, href }) => (
-              <RelatedLink key={other.id} href={href} name={other.name} school={other.school} />
+              <li key={other.id} className="border-b border-line py-2.5">
+                <Link
+                  href={href}
+                  className="text-body text-foreground underline decoration-silver underline-offset-4 transition-colors duration-150 hover:decoration-silver-light motion-reduce:transition-none"
+                >
+                  {other.name}
+                </Link>
+                <span className="ml-2 text-small text-muted-foreground">
+                  {other.university}
+                </span>
+              </li>
             ))}
           </ul>
         </div>
@@ -1317,101 +941,160 @@ function RelatedSection({ program }: { program: Program }) {
       {category.length > 0 && (
         <div>
           <p className="text-label label-mono text-silver">
-            Same field, different school
+            {getCategoryLabel(program.category)} elsewhere
           </p>
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col">
             {category.map(({ program: other, href }) => (
-              <RelatedLink key={other.id} href={href} name={other.name} school={other.school} />
+              <li key={other.id} className="border-b border-line py-2.5">
+                <Link
+                  href={href}
+                  className="text-body text-foreground underline decoration-silver underline-offset-4 transition-colors duration-150 hover:decoration-silver-light motion-reduce:transition-none"
+                >
+                  {other.name}
+                </Link>
+                <span className="ml-2 text-small text-muted-foreground">
+                  {other.university}
+                </span>
+              </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {collisions.length > 0 && (
-        <div>
-          <p className="text-label label-mono text-silver">
-            Confirmed dates within 14 days
-          </p>
-          {/* Grouped by this program's date. Ungrouped, a program with eight
-              confirmed dates repeated its own date on every row — Jan 15 is a
-              shared OUAC deadline, so the pairs run to dozens. Both dates and
-              both program names, and nothing else: no advice about which to
-              do first, and only dates the universities have confirmed. */}
-          <div className="mt-3 flex flex-col gap-6">
-            {[...new Map(collisions.map((c) => [c.own.date, c.own])).values()].map((own) => (
-              <div key={own.date}>
-                <div className="flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2">
-                  <time dateTime={own.date} className="data text-small font-semibold text-foreground">
-                    {formatDate(own.date)}
-                  </time>
-                  <span className="text-small text-muted-foreground">{program.name}</span>
-                </div>
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {collisions
-                    .filter((c) => c.own.date === own.date)
-                    .map((collision, index) => (
-                      <li key={index} className="flex flex-wrap items-baseline gap-x-3">
-                        <time
-                          dateTime={collision.other.date}
-                          className="data w-28 shrink-0 text-small text-foreground"
-                        >
-                          {formatDate(collision.other.date)}
-                        </time>
-                        <Link
-                          href={collision.href}
-                          className="rounded-sm text-small text-muted-foreground underline decoration-silver underline-offset-4 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                        >
-                          {collision.program.name} — {collision.program.school}
-                        </Link>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>
   );
 }
 
-function RelatedLink({
-  href,
-  name,
-  school,
-}: {
-  href: string;
-  name: string;
-  school: string;
-}) {
-  return (
-    <li>
-      <Link
-        href={href}
-        className="group/rel inline-flex flex-wrap items-baseline gap-x-3 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
-      >
-        <span className="text-body text-foreground underline decoration-silver underline-offset-4 transition-colors duration-150 group-hover/rel:decoration-silver-light motion-reduce:transition-none">
-          {name}
-        </span>
-        <span className="text-small text-muted-foreground">{school}</span>
-      </Link>
-    </li>
-  );
-}
-
-/**
- * Fixed labels for absent fields. It never explains why something is missing
- * and never says what the absence implies — the dataset records the absence
- * and that is the entire claim.
- */
 function NotPublishedSection({ items }: { items: string[] }) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col">
       {items.map((item) => (
-        <li key={item} className="data text-small text-muted-foreground">
+        <li key={item} className="border-b border-line py-2.5 text-body text-muted-foreground">
           {item}
         </li>
       ))}
     </ul>
+  );
+}
+
+function collectContradictions(
+  program: Program,
+  supps: SupplementaryApplication[],
+): Contradiction[] {
+  const ids = new Set<string>(program.contradiction_ids);
+
+  const walk = (value: unknown) => {
+    if (Array.isArray(value)) return value.forEach(walk);
+    if (!value || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.contradiction_ids)) {
+      for (const id of record.contradiction_ids) {
+        if (typeof id === "string") ids.add(id);
+      }
+    }
+    Object.values(record).forEach(walk);
+  };
+  walk(program);
+  supps.forEach(walk);
+
+  return [...ids]
+    .map((id) => getContradictionById(id))
+    .filter((entry): entry is Contradiction => Boolean(entry));
+}
+
+function ContradictionsSection({ contradictions }: { contradictions: Contradiction[] }) {
+  return (
+    <ul className="flex flex-col gap-8">
+      {contradictions.map((contradiction) => (
+        <li
+          key={contradiction.id}
+          id={`contradiction-${contradiction.id}`}
+          className="scroll-mt-24 border-b border-line pb-6"
+        >
+          <p className="text-body text-foreground">{contradiction.title}</p>
+          {contradiction.status && (
+            <p className="mt-1 text-label label-mono text-silver">
+              {contradiction.status}
+            </p>
+          )}
+          <ul className="mt-3 flex flex-col gap-3">
+            {contradiction.statements.map((statement, index) => (
+              <li key={index} className="border-l-2 border-line pl-4">
+                <p className="text-label label-mono text-silver">
+                  {statement.stated_by}
+                </p>
+                <p className="measure mt-1 text-small text-muted-foreground">
+                  {statement.statement ?? statement.text}
+                </p>
+              </li>
+            ))}
+          </ul>
+          {contradiction.note && (
+            <p className="measure mt-3 text-small text-muted-foreground">
+              {contradiction.note}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SourcesSection({ program }: { program: Program }) {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Program-level verification date. Individual claims carry their own
+          `verification.checked`, which may be null — those render beside the
+          claim itself rather than here. */}
+      <p className="measure text-small text-muted-foreground">
+        Dates and codes checked{" "}
+        <span className="data text-foreground">{getVerificationDate()}</span>.
+      </p>
+
+      <div>
+        <p className="text-label label-mono text-silver">Cited on this page</p>
+        <div className="mt-2">
+          <ClaimSources claim={program.admission_structure} />
+          <ClaimSources claim={program.required_courses} />
+          <ClaimSources claim={program.official_minimum} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Structured data ─────────────────────────────────────────────────────── */
+
+function ProgramJsonLd({ program, schoolSlug }: { program: Program; schoolSlug: string }) {
+  // Only fields the dataset actually holds. Nothing is inferred, and nothing
+  // that isn't published is asserted. The deadline is taken only from a row
+  // the data marks `is_deadline`.
+  const deadline = program.deadlines.find((entry) => entry.is_deadline && entry.date);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOccupationalProgram",
+    name: program.name,
+    url: `/programs/${schoolSlug}/${program.id}`,
+    provider: {
+      "@type": "CollegeOrUniversity",
+      name: program.university,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: program.campus,
+        addressRegion: "ON",
+        addressCountry: "CA",
+      },
+    },
+    programPrerequisites: (program.required_courses.value ?? []).map(
+      (course) => course.course,
+    ),
+    ...(deadline?.date ? { applicationDeadline: deadline.date } : {}),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
   );
 }

@@ -2,31 +2,14 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { DateStamp } from "@/components/ui/date-stamp";
-import { Pill } from "@/components/ui/pill";
-import { resolveEntry, type DatedItem } from "@/lib/deadlines";
-import { getSchoolSlug } from "@/lib/programs";
+import { GatekeepingBadge } from "@/components/programs/gatekeeping-badge";
+import { nextDeadlineFor } from "@/lib/deadlines";
 import { cn } from "@/lib/utils";
-import type { GatekeepingModel, GatekeepingModels, Program } from "@/types/program";
-
-const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
-  atTheDoor: "At the door",
-  twoYearsIn: "Two years in",
-  hybrid: "Hybrid",
-};
-
-/** The soonest entry still ahead, so the card answers "when" not just "what". */
-function nextDate(program: Program, today: string): DatedItem | null {
-  const dated = program.timeline
-    .map((entry) => resolveEntry(entry, today))
-    .filter((item) => item.date !== null)
-    .sort((a, b) => a.date!.localeCompare(b.date!));
-  return dated.find((item) => item.daysRemaining! >= 0) ?? null;
-}
+import type { Program } from "@/types/schema";
 
 export function ProgramCard({
   program,
   categoryLabel,
-  gatekeepingModels,
   today,
   as = "li",
   selectSlot,
@@ -34,7 +17,6 @@ export function ProgramCard({
 }: {
   program: Program;
   categoryLabel: string;
-  gatekeepingModels: GatekeepingModels;
   today: string;
   /** Pass "div" when a parent (e.g. a motion.li) already provides the list item. */
   as?: "li" | "div";
@@ -48,7 +30,7 @@ export function ProgramCard({
    */
   headingLevel?: 2 | 3;
 }) {
-  const next = nextDate(program, today);
+  const next = nextDeadlineFor(program, today);
   const Heading = headingLevel === 2 ? "h2" : "h3";
 
   return (
@@ -58,9 +40,7 @@ export function ProgramCard({
           action — before the secondary control that happens to be drawn
           above it. */}
       <div className="flex items-start gap-3 pr-24">
-        <Pill title={gatekeepingModels[program.gatekeeping]}>
-          {GATEKEEPING_LABELS[program.gatekeeping]}
-        </Pill>
+        <GatekeepingBadge programId={program.id} />
       </div>
 
       <Heading className="mt-4 text-h3 font-semibold text-foreground">
@@ -72,7 +52,7 @@ export function ProgramCard({
           link name. The compare checkbox sits above it on z-10.
         */}
         <Link
-          href={`/programs/${getSchoolSlug(program.school)}/${program.id}`}
+          href={`/programs/${program.university_id}/${program.id}`}
           // The grid's arrow-key navigation targets this attribute rather than
           // a tag selector, so changing the heading level can't silently break
           // keyboard navigation.
@@ -83,7 +63,7 @@ export function ProgramCard({
         </Link>
       </Heading>
       <p className="mt-1 text-small text-muted-foreground">
-        {program.school} · {program.campus}
+        {program.university} · {program.campus}
       </p>
 
       {selectSlot && <div className="absolute top-5 right-5">{selectSlot}</div>}
@@ -98,12 +78,12 @@ export function ProgramCard({
           <span
             className={cn(
               "data text-small",
-              program.suppApp.required
+              program.supp_app_required
                 ? "font-bold text-foreground"
                 : "font-medium text-muted-foreground"
             )}
           >
-            {program.suppApp.required ? "Required" : "Not required"}
+            {program.supp_app_required ? "Required" : "Not required"}
           </span>
         </Row>
         <Row label="Next">
@@ -113,9 +93,9 @@ export function ProgramCard({
             <span className="data text-small text-muted-foreground">No date ahead</span>
           )}
         </Row>
-        <Row label={`OUAC ${program.ouacCodes.length > 1 ? `(${program.ouacCodes.length})` : ""}`}>
+        <Row label={`OUAC ${program.ouac_codes.length > 1 ? `(${program.ouac_codes.length})` : ""}`}>
           <span className="data text-small break-words text-foreground">
-            {program.ouacCodes.map((code) => code.code).join(" ")}
+            {program.ouac_codes.map((code) => code.code).join(" ")}
           </span>
         </Row>
       </dl>

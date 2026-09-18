@@ -63,6 +63,16 @@ export function DateStamp({
     );
   }
 
+  // A previous cycle's date. Shown only with the label that says so — never
+  // as an upcoming date, and never in a countdown.
+  if (item.state === "prior_cycle") {
+    return (
+      <span className={className}>
+        <Pill tone="muted">Last cycle</Pill>
+      </span>
+    );
+  }
+
   if (item.state === "rolling") {
     return (
       <span className={className}>

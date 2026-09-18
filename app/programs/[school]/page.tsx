@@ -7,17 +7,15 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { todayISO } from "@/lib/deadlines";
 import {
   getCategoryLabel,
-  getGatekeepingModels,
-  getProgramsBySchoolSlug,
-  getSchoolBySlug,
-  getSchools,
-  getSchoolSlug,
-} from "@/lib/programs";
+  getProgramsByUniversity,
+  getUniversityName,
+  getUniversitySlugs,
+} from "@/lib/data";
 
 export const revalidate = 3600;
 
 export function generateStaticParams() {
-  return getSchools().map((school) => ({ school: getSchoolSlug(school) }));
+  return getUniversitySlugs().map((slug) => ({ school: slug }));
 }
 
 export async function generateMetadata({
@@ -26,10 +24,10 @@ export async function generateMetadata({
   params: Promise<{ school: string }>;
 }): Promise<Metadata> {
   const { school: schoolSlug } = await params;
-  const school = getSchoolBySlug(schoolSlug);
+  const school = getUniversityName(schoolSlug);
   if (!school) return {};
 
-  const programs = getProgramsBySchoolSlug(schoolSlug);
+  const programs = getProgramsByUniversity(schoolSlug);
   return {
     title: school,
     description: `Every ${school} program we track — ${programs
@@ -45,14 +43,13 @@ export default async function SchoolProgramsPage({
   params: Promise<{ school: string }>;
 }) {
   const { school: schoolSlug } = await params;
-  const school = getSchoolBySlug(schoolSlug);
-  const programs = getProgramsBySchoolSlug(schoolSlug);
+  const school = getUniversityName(schoolSlug);
+  const programs = getProgramsByUniversity(schoolSlug);
 
   if (!school || programs.length === 0) {
     notFound();
   }
 
-  const gatekeepingModels = getGatekeepingModels();
   const today = todayISO();
 
   return (
@@ -79,8 +76,7 @@ export default async function SchoolProgramsPage({
             key={program.id}
             program={program}
             today={today}
-            categoryLabel={getCategoryLabel(program.category) ?? program.category}
-            gatekeepingModels={gatekeepingModels}
+            categoryLabel={getCategoryLabel(program.category)}
           />
         ))}
       </ul>
