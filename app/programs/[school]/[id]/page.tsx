@@ -867,6 +867,21 @@ function AveragesSection({ program }: { program: Program }) {
         </div>
       )}
 
+      {/* No ranges, but the university said something about why.
+          mcmaster-engineering-i publishes "No competitive grade range was
+          identified" — officially, and certified. That is the not-published
+          state stated outright, so it is shown rather than dropped.
+          The two other programs with no ranges (mcmaster-ibiomed,
+          mcmaster-bhsc) carry no note, and nothing is written for them. */}
+      {ranges.length === 0 && program.grade_range_note && (
+        <div className="border-t border-line pt-6">
+          <p className="text-label label-mono text-silver">Grade ranges</p>
+          <div className="mt-2">
+            <Claim claim={program.grade_range_note} showSources />
+          </div>
+        </div>
+      )}
+
       {/* 3. Community figures last, visually subordinate, never the headline
              number and never a threshold. */}
       {community.length > 0 && (
