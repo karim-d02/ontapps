@@ -1178,14 +1178,18 @@ function ContradictionsSection({ contradictions }: { contradictions: Contradicti
                   {statement.stated_by}
                 </p>
                 <p className="measure mt-1 text-small text-muted-foreground">
-                  {statement.statement ?? statement.text}
+                  {statement.text}
                 </p>
               </li>
             ))}
           </ul>
-          {contradiction.note && (
-            <p className="measure mt-3 text-small text-muted-foreground">
-              {contradiction.note}
+          {/* `guidance` is the payoff — the only part that says what to do.
+              This previously read `contradiction.note`, a key the records do
+              not have, so it rendered nothing at all. Where guidance is absent
+              the disagreement stands unresolved, and none is written here. */}
+          {contradiction.guidance && (
+            <p className="measure mt-3 border-l-2 border-silver-light pl-4 text-small text-foreground">
+              {contradiction.guidance}
             </p>
           )}
         </li>

@@ -265,20 +265,42 @@ export interface Source {
 }
 
 export interface ContradictionStatement {
+  /** Who says it. Always attributed — never presented as the site's view. */
   stated_by: string;
-  statement?: string | null;
-  text?: string | null;
+  text: string;
+  claim_type: ClaimType;
   sources: string[];
+  /** Internal. Emptied at the data layer, never rendered. */
+  pdf_block_ids?: string[];
+  observed?: string | null;
 }
 
 export interface Contradiction {
   id: string;
   type: ContradictionType;
+  /** The disagreement in one line. */
   title: string;
+  /** "unresolved" | "explained". */
   status: string | null;
   statements: ContradictionStatement[];
-  note?: string | null;
-  programs?: string[];
+  /**
+   * What to actually do about it. Present on 14 of the 30 in scope. Where it
+   * is absent there is no resolved answer, and none is written.
+   */
+  guidance?: string | null;
+  program_ids?: string[];
+  supplementary_application_ids?: string[];
+  pdf_pages?: number[];
+  /**
+   * Internal — notes about the source document and the verification pass, not
+   * student-facing copy. Never rendered.
+   */
+  pdf_note?: string | null;
+  verification_note?: string | null;
+  corrections_note?: string | null;
+  guidance_block_ids?: string[];
+  related_block_ids?: string[];
+  log_ids?: string[];
 }
 
 // --- Supplementary applications -------------------------------------------

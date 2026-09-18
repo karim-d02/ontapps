@@ -32,6 +32,13 @@ const STATIC_ROUTES = [
   "/opengraph-image",
 ];
 
+// The two retired URLs from the schema change. They serve a 200 with a choice
+// on the page, so they are checked like any other route.
+const SPLIT_ROUTES = [
+  "/programs/university-of-toronto/uoft-engineering",
+  "/programs/mcmaster-university/mcmaster-engineering",
+];
+
 const universityRoutes = data.universities.map((u) => `/programs/${u.id}`);
 const programRoutes = data.programs.map(
   (p) => `/programs/${p.university_id}/${p.id}`,
@@ -42,6 +49,7 @@ const ogRoutes = data.programs.map(
 
 const routes = [
   ...STATIC_ROUTES,
+  ...SPLIT_ROUTES,
   ...universityRoutes,
   ...programRoutes,
   ...ogRoutes,

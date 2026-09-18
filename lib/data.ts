@@ -67,7 +67,14 @@ function isInternalNote(value: unknown): boolean {
 }
 
 /** Internal-only keys, emptied so their values never leave the server. */
-const INTERNAL_ID_KEYS = new Set(["pdf_block_ids", "log_ids", "verification_log_ids"]);
+const INTERNAL_ID_KEYS = new Set([
+  "pdf_block_ids",
+  "log_ids",
+  "verification_log_ids",
+  // Same class, on contradiction records.
+  "guidance_block_ids",
+  "related_block_ids",
+]);
 
 function sanitize<T>(input: T): T {
   if (Array.isArray(input)) {

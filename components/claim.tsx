@@ -159,7 +159,18 @@ export function ClaimConflict({ claim }: { claim: ClaimEnvelope }) {
  * one, and a source we did not re-check says so.
  */
 export function ClaimSources({ claim }: { claim: ClaimEnvelope }) {
-  const sources = getSourcesFor(claim);
+  return <SourceList sourceIds={claim.sources} />;
+}
+
+/**
+ * The citation list, by source id.
+ *
+ * Split out of ClaimSources so anything carrying source ids but not a full
+ * claim envelope — a contradiction statement, for instance — cites through the
+ * same path rather than growing its own.
+ */
+export function SourceList({ sourceIds }: { sourceIds: string[] }) {
+  const sources = getSourcesFor({ sources: sourceIds } as ClaimEnvelope);
   if (sources.length === 0) return null;
 
   return (
