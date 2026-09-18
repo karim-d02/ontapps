@@ -6,11 +6,10 @@ import { ProgramGridSkeleton } from "@/components/programs/program-grid-skeleton
 import { SectionHeader } from "@/components/ui/section-header";
 import { todayISO } from "@/lib/deadlines";
 import {
+  CATEGORIES,
   getAllPrograms,
-  getCategories,
-  getGatekeepingModels,
-  getSchools,
-} from "@/lib/programs";
+  getUniversities,
+} from "@/lib/data";
 
 export const revalidate = 3600;
 
@@ -23,16 +22,14 @@ export const metadata: Metadata = {
 
 export default function ProgramsIndexPage() {
   const programs = getAllPrograms();
-  const schools = getSchools();
-  const categories = getCategories();
-  const gatekeepingModels = getGatekeepingModels();
+  const universities = getUniversities();
   const today = todayISO();
 
   return (
     <main className="shell pt-[var(--rhythm-section)] pb-[var(--rhythm-section)] motion-safe:animate-fade-rise-sm">
       <SectionHeader
         level={1}
-        label={`${programs.length} programs · ${schools.length} universities`}
+        label={`${programs.length} programs · ${universities.length} universities`}
         title="Programs"
       />
       <p className="measure mt-4 text-body text-muted-foreground">
@@ -49,9 +46,8 @@ export default function ProgramsIndexPage() {
         <Suspense fallback={<ProgramGridSkeleton count={programs.length} />}>
           <ProgramsBrowser
             programs={programs}
-            schools={schools}
-            categories={categories}
-            gatekeepingModels={gatekeepingModels}
+            universities={universities}
+            categories={CATEGORIES}
             today={today}
           />
         </Suspense>

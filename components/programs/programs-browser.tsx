@@ -16,36 +16,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  GATEKEEPING_FILTER_ORDER,
+  getCategoryLabel,
+  getGatekeepingFor,
+  getGatekeepingModel,
+} from "@/lib/data";
 import type {
-  Category,
-  GatekeepingModel,
-  GatekeepingModels,
+  GatekeepingModelId,
   Program,
   ProgramCategory,
-} from "@/types/program";
+  University,
+} from "@/types/schema";
 
-const GATEKEEPING_LABELS: Record<GatekeepingModel, string> = {
-  atTheDoor: "At the door",
-  twoYearsIn: "Two years in",
-  hybrid: "Hybrid",
-};
+/**
+ * The gatekeeping filter options.
+ *
+ * "undetermined" is one of them, listed separately and last. It is NOT grouped
+ * with "at_the_door": the data does not establish whether those two programs
+ * have a gate at all, and folding them into a definite answer would hand a
+ * student a classification that does not exist. Labels come from the data.
+ */
+const GATEKEEPING_OPTIONS: GatekeepingModelId[] = GATEKEEPING_FILTER_ORDER;
 
-const GATEKEEPING_OPTIONS = Object.keys(GATEKEEPING_LABELS) as GatekeepingModel[];
+function gatekeepingOptionLabel(model: GatekeepingModelId): string {
+  return getGatekeepingModel(model)?.label ?? model;
+}
 
 const ALL = "all";
 const MAX_COMPARE = 3;
 
 export function ProgramsBrowser({
   programs,
-  schools,
+  universities,
   categories,
-  gatekeepingModels,
   today,
 }: {
   programs: Program[];
-  schools: string[];
-  categories: Category[];
-  gatekeepingModels: GatekeepingModels;
+  universities: University[];
+  categories: ProgramCategory[];
   today: string;
 }) {
   const pathname = usePathname();
@@ -112,15 +121,21 @@ export function ProgramsBrowser({
   );
 
   const categoryLabelById = useMemo(
-    () => new Map(categories.map((c) => [c.id, c.label])),
+    () => new Map(categories.map((c) => [c, getCategoryLabel(c)])),
     [categories]
+  );
+
+  const universityNameById = useMemo(
+    () => new Map(universities.map((u) => [u.id, u.name])),
+    [universities]
   );
 
   const filtered = programs.filter(
     (program) =>
-      (school === ALL || program.school === school) &&
+      (school === ALL || program.university_id === school) &&
       (category === ALL || program.category === category) &&
-      (gatekeeping === ALL || program.gatekeeping === gatekeeping)
+      (gatekeeping === ALL ||
+        getGatekeepingFor(program.id)?.model === gatekeeping)
   );
 
   const hasActiveFilters = school !== ALL || category !== ALL || gatekeeping !== ALL;
@@ -175,14 +190,16 @@ export function ProgramsBrowser({
         <Select value={school} onValueChange={(value) => setParam("school", value ?? ALL)}>
           <SelectTrigger className="w-52" aria-label="Filter by school">
             <SelectValue placeholder="School">
-              {(value: string) => (value === ALL ? "All schools" : value)}
+              {(value: string) =>
+                value === ALL ? "All schools" : (universityNameById.get(value) ?? value)
+              }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All schools</SelectItem>
-            {schools.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
+            {universities.map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -201,8 +218,8 @@ export function ProgramsBrowser({
           <SelectContent>
             <SelectItem value={ALL}>All fields</SelectItem>
             {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.label}
+              <SelectItem key={c} value={c}>
+                {getCategoryLabel(c)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -217,7 +234,7 @@ export function ProgramsBrowser({
               {(value: string) =>
                 value === ALL
                   ? "All gatekeeping models"
-                  : GATEKEEPING_LABELS[value as GatekeepingModel]
+                  : gatekeepingOptionLabel(value as GatekeepingModelId)
               }
             </SelectValue>
           </SelectTrigger>
@@ -225,7 +242,7 @@ export function ProgramsBrowser({
             <SelectItem value={ALL}>All gatekeeping models</SelectItem>
             {GATEKEEPING_OPTIONS.map((g) => (
               <SelectItem key={g} value={g}>
-                {GATEKEEPING_LABELS[g]}
+                {gatekeepingOptionLabel(g)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -267,7 +284,6 @@ export function ProgramsBrowser({
                   program={program}
                   today={today}
                   categoryLabel={categoryLabelById.get(program.category) ?? program.category}
-                  gatekeepingModels={gatekeepingModels}
                   selectSlot={
                     <CompareToggle
                       selected={compare.includes(program.id)}
