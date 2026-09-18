@@ -92,17 +92,45 @@ const internalNoteTexts = [];
 const pdfBlockIds = new Set();
 const logIds = new Set();
 
-(function walk(value) {
-  if (Array.isArray(value)) return value.forEach(walk);
+/**
+ * Claims whose `contains` lists "internal_note" but whose `claim_type` does not.
+ *
+ * These are NOT filtered by the data layer and NOT a failure here. `contains`
+ * records what the original PDF block combined, not what survived into `text`:
+ * the preparation pass already separated them, so the remaining text is the
+ * official half and is publishable.
+ *
+ * They are surfaced for review anyway. Today there is exactly one and it has
+ * been read and approved. If a data update adds another, this prints it rather
+ * than letting it be silently published — or silently dropped, which is what
+ * filtering on `contains` would do to content that has already been cleaned.
+ */
+const containsInternalNote = [];
+
+(function walk(value, path) {
+  if (Array.isArray(value)) {
+    return value.forEach((entry, index) => walk(entry, `${path}[${index}]`));
+  }
   if (!value || typeof value !== "object") return;
-  // Matches the data layer: a claim is an internal note when claim_type says
-  // so OR when `contains` lists it inside a `mixed` claim.
-  const isInternalNote =
-    value.claim_type === "internal_note" ||
-    (Array.isArray(value.contains) && value.contains.includes("internal_note"));
-  if (isInternalNote && typeof value.text === "string") {
+
+  // Matches the data layer exactly: claim_type only.
+  if (value.claim_type === "internal_note" && typeof value.text === "string") {
     internalNoteTexts.push(value.text);
   }
+
+  if (
+    value.claim_type !== "internal_note" &&
+    Array.isArray(value.contains) &&
+    value.contains.includes("internal_note")
+  ) {
+    containsInternalNote.push({
+      path,
+      claimType: value.claim_type,
+      contains: value.contains,
+      text: typeof value.text === "string" ? value.text : "(no text field)",
+    });
+  }
+
   if (Array.isArray(value.pdf_block_ids)) {
     value.pdf_block_ids.forEach((id) => pdfBlockIds.add(id));
   }
@@ -112,8 +140,10 @@ const logIds = new Set();
   if (Array.isArray(value.verification_log_ids)) {
     value.verification_log_ids.forEach((id) => logIds.add(id));
   }
-  Object.values(value).forEach(walk);
-})(data);
+  for (const [key, entry] of Object.entries(value)) {
+    walk(entry, path ? `${path}.${key}` : key);
+  }
+})(data, "");
 
 const failures = [];
 const results = [];
@@ -186,6 +216,26 @@ console.log(
 console.log(
   `internal_note claims in data: ${internalNoteTexts.length} · pdf_block_ids: ${pdfBlockIds.size} · log_ids: ${logIds.size}`,
 );
+
+/*
+ * Review surface. Never a failure — see containsInternalNote above.
+ */
+if (containsInternalNote.length > 0) {
+  console.log(
+    `\nREVIEW (${containsInternalNote.length}) — claims whose \`contains\` lists internal_note.`,
+  );
+  console.log(
+    "These are published. `contains` describes the original PDF block, not the",
+  );
+  console.log(
+    "cleaned text. Read each one and confirm it is still safe to publish:",
+  );
+  for (const entry of containsInternalNote) {
+    console.log(`  ${entry.path}`);
+    console.log(`    claim_type: ${entry.claimType} · contains: ${entry.contains.join(", ")}`);
+    console.log(`    text: ${entry.text}`);
+  }
+}
 
 if (leaks.length > 0) {
   console.log(`\nLEAKS (${leaks.length}):`);

@@ -44,25 +44,31 @@ import type {
 // component remembering not to.
 
 /**
- * True when a claim is, or contains, a note to the site team.
+ * True when a claim is a note to the site team.
  *
- * Keying on `claim_type` alone is not enough. A `mixed` claim combines several
- * claim types and names them in `contains`, so an internal note can sit inside
- * one without the top-level `claim_type` ever saying so —
- * `supplementary_applications[4].naming` on rotman-commerce-supp is exactly
- * that: `claim_type: "mixed"` with `contains: ["official", "internal_note"]`.
+ * Deliberately keyed on `claim_type` alone, and NOT on `contains`.
  *
- * That one instance happens to be publishable and nothing leaks today. The
- * filter is widened because the shape exists, not because of that record.
+ * `contains` records what the original PDF block combined, not what survived
+ * into `text`. The preparation pass already separated them, so on a `mixed`
+ * claim whose `contains` lists "internal_note" the remaining `text` is the
+ * official half and is publishable. Filtering on `contains` would discard
+ * content that has already been cleaned —
+ * `supplementary_applications[4].naming` on rotman-commerce-supp is the one
+ * such record today, and it is approved for publication.
+ *
+ * That is a judgement about one reviewed record, not a rule that holds
+ * forever, so it is not left to trust: scripts/smoke.mjs lists every claim
+ * whose `contains` includes "internal_note" as a REVIEW line. A future data
+ * update that adds another surfaces for a human instead of being silently
+ * published — or silently dropped, which is what a `contains` filter here
+ * would do.
  */
 function isInternalNote(value: unknown): boolean {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const claim = value as { claim_type?: unknown; contains?: unknown };
-  if (claim.claim_type === "internal_note") return true;
   return (
-    Array.isArray(claim.contains) && claim.contains.includes("internal_note")
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as { claim_type?: unknown }).claim_type === "internal_note"
   );
 }
 
