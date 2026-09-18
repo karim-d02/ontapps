@@ -1,0 +1,488 @@
+{
+  "meta": {
+    "title": "Gatekeeping models",
+    "file": "gatekeeping.json",
+    "schema_version": "1.0",
+    "generated": "2026-09-18",
+    "companion_to": "programs.json",
+    "statement": "Editorial classification of WHEN each program evaluates a student: at admission, or again on university grades after arrival. No university publishes this framing. It is the site author's analysis, restored from the corrected source PDF, where it was written for the five health-sciences programs and is quoted verbatim below. The other eleven programs are classified by extension from structural facts already in programs.json, each quoted in `evidence`. Two programs are deliberately left `undetermined`.",
+    "why_separate_file": "programs.json is read-only and carries only what the source document states. This file is explicitly editorial and is maintained separately so the two never blur.",
+    "counts": {
+      "programs": 16,
+      "stated": 5,
+      "derived": 9,
+      "undetermined": 2
+    }
+  },
+  "models": {
+    "at_the_door": {
+      "label": "Gated at the door",
+      "short": "Decided before you arrive",
+      "summary": "The decision is made while you are still in Grade 12. High stakes, one shot, but you know where you stand by May.",
+      "detail": "You are admitted to the program you will graduate from. There is no second competitive filter on university grades."
+    },
+    "two_years_in": {
+      "label": "Gated two years in",
+      "short": "The real filter comes later",
+      "summary": "Admission is comparatively easy. You get in on your Grade 12 average, then compete again on university grades.",
+      "detail": "The name on your offer letter is not the program you will graduate from. The decision that matters is a year or two away and runs on marks you have not earned yet."
+    },
+    "hybrid": {
+      "label": "In between",
+      "short": "In from Year 1, with a later requirement",
+      "summary": "Direct entry to the degree, but a progression or placement requirement afterwards.",
+      "detail": "You are not competing for your place in the faculty, but something — a specialization, a discipline, an honours stream — is still decided on university grades."
+    },
+    "undetermined": {
+      "label": "Not established",
+      "short": "We don't know yet",
+      "summary": "The data does not say whether there is a gate after admission.",
+      "detail": "This is an open question, not a finding of 'no gate'. Absence of a documented gate is not evidence that none exists, and 'you're safe' is the more dangerous thing to say wrongly."
+    }
+  },
+  "framing": {
+    "value": null,
+    "text": "If you're choosing between these, you're not just choosing schools. You're choosing when you want to be evaluated.",
+    "scope": "Written in the source document about the five health-sciences programs: McMaster BHSc, Queen's BHSc, Western Medical Sciences, Western BHSc and UofT Life Sciences.",
+    "verbatim": [
+      "Across these five programs there are two completely different gatekeeping models, and nobody tells students this:",
+      "Gated at the door — Mac BHSc and Queen's BHSc. A supplementary application decides it before you arrive. High stakes, one shot, but you know where you stand by May.",
+      "Gated two years in — Western Med Sci and UofT Life Sci. Admission is easy relative to the real filter. You get in on your Grade 12 average, then compete again on university grades for BMSc entry or a limited POSt. The name on your offer letter is not the program you'll graduate from.",
+      "Western BHSc sits between them — direct entry to the degree, but with a progression requirement after second year.",
+      "If you're choosing between these, you're not just choosing schools. You're choosing when you want to be evaluated."
+    ],
+    "claim_type": "editorial",
+    "verification": {
+      "status": "not_individually_verified",
+      "log_ids": [],
+      "corrections": [],
+      "note": "Verbatim from OntApps Raw Data 6 — corrected (clean).",
+      "checked": null
+    },
+    "sources": [],
+    "source_attribution": "none",
+    "contradiction_ids": []
+  },
+  "programs": {
+    "mcmaster-bhsc": {
+      "model": "at_the_door",
+      "confidence": "stated",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to Honours Health Sciences and you graduate from Honours Health Sciences. There is no second competitive gate on university grades.",
+      "evidence": [
+        {
+          "quote": "Gated at the door — Mac BHSc and Queen's BHSc. A supplementary application decides it before you arrive. High stakes, one shot, but you know where you stand by May.",
+          "from": "OntApps Raw Data 6 — corrected (clean), framing line"
+        }
+      ],
+      "note": null,
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "queens-health-sciences": {
+      "model": "at_the_door",
+      "confidence": "stated",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to the BHSc and you graduate from the BHSc. The supplementary application is the filter, and it happens while you are still in Grade 12.",
+      "evidence": [
+        {
+          "quote": "Gated at the door — Mac BHSc and Queen's BHSc. A supplementary application decides it before you arrive. High stakes, one shot, but you know where you stand by May.",
+          "from": "OntApps Raw Data 6 — corrected (clean), framing line"
+        }
+      ],
+      "note": null,
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "western-medical-sciences": {
+      "model": "two_years_in",
+      "confidence": "stated",
+      "headline": "Getting in is the easy part.",
+      "what_happens_after_admission": "You are registered as a Medical Sciences student for Years 1 and 2, then compete again on university grades for a Year 3 BMSc seat. Roughly 500 Year 3 spaces against 1,000 first-year seats.",
+      "evidence": [
+        {
+          "quote": "Gated two years in — Western Med Sci and UofT Life Sci. Admission is easy relative to the real filter. You get in on your Grade 12 average, then compete again on university grades for BMSc entry or a limited POSt. The name on your offer letter is not the program you'll graduate from.",
+          "from": "OntApps Raw Data 6 — corrected (clean), framing line"
+        },
+        {
+          "quote": "Western states it directly: admission to Medical Sciences is not admission to the BMSc Program.",
+          "from": "programs.json → western-medical-sciences.stream_traps"
+        },
+        {
+          "quote": "Assured admission: min 80% average on the 2000-level courses required for your intended module, no mark below 60%, by end of Fall/Winter of Med Sci 2 → automatic seat in Year 3 BMSc. Competitive pool: min 75%. ~500 Year 3 spaces.",
+          "from": "programs.json → western-medical-sciences.year3_entry"
+        }
+      ],
+      "note": null,
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "uoft-life-sciences-st-george": {
+      "model": "two_years_in",
+      "confidence": "stated",
+      "headline": "You are not applying to a program.",
+      "what_happens_after_admission": "Life Sciences is an admission category. In first year you are enrolled in no specific program. You apply to your actual program — the subject POSt — at the end of first year, on your first-year university marks. High-demand POSts carry a variable minimum grade that is re-set every year, so there is no published number to aim at in advance.",
+      "evidence": [
+        {
+          "quote": "Gated two years in — Western Med Sci and UofT Life Sci. Admission is easy relative to the real filter. You get in on your Grade 12 average, then compete again on university grades for BMSc entry or a limited POSt. The name on your offer letter is not the program you'll graduate from.",
+          "from": "OntApps Raw Data 6 — corrected (clean), framing line"
+        },
+        {
+          "quote": "Getting into Life Sci is not getting into the program you want. That decision is a year away and runs on your first-year university marks.",
+          "from": "OntApps Raw Data 6 — corrected (clean), UofT Life Sciences — THE TRAP"
+        },
+        {
+          "quote": "High-demand ones carry a \"variable minimum grade\" — the cutoff is re-set every year based on that year's applicant pool. There is no published number to aim at in advance.",
+          "from": "OntApps Raw Data 6 — corrected (clean), How the POSt system actually gates you"
+        }
+      ],
+      "note": null,
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "western-health-sciences": {
+      "model": "hybrid",
+      "confidence": "stated",
+      "headline": "In from Year 1, but not home free.",
+      "what_happens_after_admission": "Direct entry to the degree, then a progression requirement after second year to continue in the Honours Specialization. Meeting the minimum does not guarantee it — spaces are limited.",
+      "evidence": [
+        {
+          "quote": "Western BHSc sits between them — direct entry to the degree, but with a progression requirement after second year.",
+          "from": "OntApps Raw Data 6 — corrected (clean), framing line"
+        },
+        {
+          "quote": "BHSc has a progression requirement after second year to continue in the Honours Specialization. School of Health Studies notes meeting minimum requirements does not guarantee admission, due to limited spaces.",
+          "from": "programs.json → western-health-sciences.other_facts"
+        }
+      ],
+      "note": null,
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "utm-life-sciences": {
+      "model": "two_years_in",
+      "confidence": "derived",
+      "headline": "You are not applying to a program.",
+      "what_happens_after_admission": "Same structure as St. George with different vocabulary: you are admitted to a category, then apply to a program labelled Type 1, 2 or 3 depending on whether it has entry requirements and limited spaces.",
+      "evidence": [
+        {
+          "quote": "UTM — every program is labelled Type 1, 2 or 3, indicating whether there are entry requirements and whether spaces are limited. Same idea, different vocabulary.",
+          "from": "OntApps Raw Data 6 — corrected (clean), How the POSt system actually gates you"
+        },
+        {
+          "quote": "The document's framing line names \"UofT Life Sci\" and its section heading covers \"UofT Life Sciences (St. George + UTM)\".",
+          "from": "OntApps Raw Data 6 — corrected (clean), section heading"
+        }
+      ],
+      "note": "The document's explicit framing line names UofT Life Sci without splitting the campuses. Classified the same as St. George on the strength of the Type 1/2/3 description.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "mcmaster-engineering-i": {
+      "model": "hybrid",
+      "confidence": "derived",
+      "headline": "In the faculty at the door. Your discipline is decided later.",
+      "what_happens_after_admission": "You are admitted to Engineering I, a common first year. Your Level II discipline is then chosen after Level I by GPA — unless a strong enough admission average earned you Free Choice, which lets you pick without competing on first-year CGPA.",
+      "evidence": [
+        {
+          "quote": "Common first year · Direct entry to a program, or Discovery Track (discipline chosen after Level I by GPA); rank up to two",
+          "from": "programs.json → mcmaster-engineering-i.admission_structure"
+        },
+        {
+          "quote": "A sufficiently strong admission average can earn Free Choice, allowing the student to select their Level II Engineering discipline without competing based on first-year CGPA. Exceptions include Chemical & Bioengineering and the Management and Society options.",
+          "from": "programs.json → mcmaster-engineering-i.other_facts"
+        }
+      ],
+      "note": "The gate is on discipline, not on staying in Engineering. A student who misses their discipline is still an Engineering student.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "uoft-engineering-trackone": {
+      "model": "hybrid",
+      "confidence": "derived",
+      "headline": "Admitted undeclared. Discipline chosen later.",
+      "what_happens_after_admission": "You are admitted to Engineering without a discipline and select a Core 8 discipline after the Foundation Years.",
+      "evidence": [
+        {
+          "quote": "Direct entry, undeclared Engineering · Core 8 discipline selected after the Foundation Years",
+          "from": "programs.json → uoft-engineering-trackone.admission_structure"
+        }
+      ],
+      "note": "The data records that the discipline decision happens after admission but does NOT say whether it is competitive, or what happens if a discipline is oversubscribed. Treat the severity as unknown until that is sourced.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "waterloo-engineering": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to a specific discipline and you graduate from it. There is no documented post-admission competition to stay in or to pick a discipline.",
+      "evidence": [
+        {
+          "quote": "Direct entry by discipline · One Engineering program per applicant",
+          "from": "programs.json → waterloo-engineering.admission_structure"
+        }
+      ],
+      "note": "Conditional offers require a final admission average of 85% to remain valid. That is a condition on the offer, decided on Grade 12 marks before you arrive — not a post-admission competition. No progression gate is documented in the data.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "uoft-engineering-core8-engsci": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to a specific discipline in first year and you graduate from it.",
+      "evidence": [
+        {
+          "quote": "Direct entry by discipline, first year",
+          "from": "programs.json → uoft-engineering-core8-engsci.admission_structure"
+        }
+      ],
+      "note": "No post-admission academic gate is documented anywhere in the data for this program. That is the basis for the classification — not a statement by the university that no gate exists.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "queens-commerce": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to Commerce and you graduate from Commerce. The supplementary application is the filter, and it happens while you are still in Grade 12.",
+      "evidence": [
+        {
+          "quote": "Queen's University, Kingston · Smith School of Business · Direct entry",
+          "from": "programs.json → queens-commerce.admission_structure"
+        }
+      ],
+      "note": "No post-admission academic gate is documented anywhere in the data for this program. That is the basis for the classification — not a statement by the university that no gate exists.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "waterloo-kinesiology": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to Kinesiology and you graduate from Kinesiology. Co-op and regular are two systems of study under the same OUAC code, not a later competitive gate.",
+      "evidence": [
+        {
+          "quote": "University of Waterloo, Waterloo · Faculty of Health · Regular and Co-op systems of study available under the same code",
+          "from": "programs.json → waterloo-kinesiology.admission_structure"
+        },
+        {
+          "quote": "If an applicant is not admitted to the co-op stream, they may be automatically considered for the regular stream where space is available.",
+          "from": "programs.json → waterloo-kinesiology.alternate_offer"
+        }
+      ],
+      "note": "No post-admission academic gate is documented anywhere in the data for this program. That is the basis for the classification — not a statement by the university that no gate exists.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "uoft-kinesiology": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "KPE is its own faculty with direct entry to the BKin. You are not admitted to a category and you do not compete for a program of study afterwards.",
+      "evidence": [
+        {
+          "quote": "University of Toronto, St. George · Faculty of Kinesiology & Physical Education (KPE) · Separate faculty from the Faculty of Arts & Science",
+          "from": "programs.json → uoft-kinesiology.admission_structure"
+        }
+      ],
+      "note": "No post-admission academic gate is documented anywhere in the data for this program. That is the basis for the classification — not a statement by the university that no gate exists.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "mcmaster-kinesiology": {
+      "model": "at_the_door",
+      "confidence": "derived",
+      "headline": "Decided before you arrive.",
+      "what_happens_after_admission": "You are admitted to Honours Kinesiology and you graduate from it. Co-op sits under the same code.",
+      "evidence": [
+        {
+          "quote": "McMaster University, Hamilton · Faculty of Science · Co-op option available under the same code",
+          "from": "programs.json → mcmaster-kinesiology.admission_structure"
+        }
+      ],
+      "note": "No post-admission academic gate is documented anywhere in the data for this program. That is the basis for the classification — not a statement by the university that no gate exists.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "uoft-rotman-commerce": {
+      "model": "undetermined",
+      "confidence": "unknown",
+      "headline": "Not established by the data.",
+      "what_happens_after_admission": "Rotman Commerce is an admission category within Arts & Science, structurally the same as Life Sciences — but the data does not say whether there is a competitive specialist or POSt entry after first year.",
+      "evidence": [
+        {
+          "quote": "How to actually apply: OUAC → University of Toronto → Faculty of Arts & Science, St. George → then select Rotman Commerce from the program list. It is an A&S admission category, not a separate faculty application.",
+          "from": "programs.json → uoft-rotman-commerce.admission_structure"
+        }
+      ],
+      "note": "HIGHEST-PRIORITY GAP. Rotman is an A&S admission category, and the one other A&S admission category in this dataset — Life Sciences — is documented as gating students a year in through the POSt system. That parallel is a reason to suspect a gate here, not evidence of one. Do not classify this until an official Rotman or A&S page is checked.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    },
+    "mcmaster-ibiomed": {
+      "model": "undetermined",
+      "confidence": "unknown",
+      "headline": "Not established by the data.",
+      "what_happens_after_admission": "iBioMed admits directly to a joint Engineering / Health Sciences program, but the data does not say how a student enters the HESE stream or whether Level II discipline selection works the way Engineering I's does.",
+      "evidence": [
+        {
+          "quote": "Joint Faculty of Engineering + Faculty of Health Sciences · 155 seats",
+          "from": "programs.json → mcmaster-ibiomed.admission_structure"
+        },
+        {
+          "quote": "iBioMed graduates earn a Bachelor of Engineering & Biomedical Engineering or, through the HESE stream, an Honours Bachelor of Health Sciences.",
+          "from": "programs.json → mcmaster-ibiomed.stream_traps"
+        }
+      ],
+      "note": "Two degree outcomes exist and the data does not say how a student ends up in one rather than the other. McMaster Engineering I gates discipline after Level I by CGPA; whether iBioMed does the same is unsourced.",
+      "claim_type": "editorial",
+      "verification": {
+        "status": "not_individually_verified",
+        "log_ids": [],
+        "corrections": [],
+        "note": "Author analysis. The classification is editorial; the facts it rests on are quoted in `evidence` and carry their own provenance in programs.json.",
+        "checked": null
+      },
+      "sources": [],
+      "source_attribution": "none",
+      "contradiction_ids": []
+    }
+  }
+}
