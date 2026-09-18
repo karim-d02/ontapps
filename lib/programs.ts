@@ -10,7 +10,11 @@ import type {
   StaleOfficialPage,
 } from "@/types/program";
 
-const data = rawData as ProgramsData;
+// TEMPORARY MIGRATION SHIM — removed in the stubs stage.
+// The old schema types no longer describe data/programs.json. This cast keeps
+// the not-yet-migrated pages compiling so every stage can commit green; the
+// code below is dead-schema and is replaced route by route. See MIGRATION-REPORT.md.
+const data = rawData as unknown as ProgramsData;
 
 export function getAllPrograms(): Program[] {
   return data.programs;
