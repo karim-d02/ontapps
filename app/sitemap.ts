@@ -5,6 +5,7 @@ import {
   getUniversitySlugs,
   getVerificationEndDate,
 } from "@/lib/data";
+import { SPLIT_PROGRAMS } from "@/lib/split-programs";
 
 // Sitemap entries must be absolute. metadataBase resolves the canonical and
 // Open Graph URLs in generateMetadata, but it does not apply here — relative
@@ -48,5 +49,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   }));
 
-  return [...staticRoutes, ...schoolRoutes, ...programRoutes];
+  const routes = [...staticRoutes, ...schoolRoutes, ...programRoutes];
+
+  /*
+   * The two retired split URLs must never appear here. They serve a 200 with a
+   * choice on it so inbound links land somewhere honest, but they are not
+   * content to index — the two real program pages are.
+   *
+   * They are already absent, because everything above is built from
+   * getAllPrograms() and those ids are not programs any more. This filter is
+   * here so that stays true if the generation above ever changes shape.
+   */
+  const excluded = new Set(
+    SPLIT_PROGRAMS.map(({ school, id }) => abs(`/programs/${school}/${id}`)),
+  );
+
+  return routes.filter((route) => !excluded.has(route.url));
 }

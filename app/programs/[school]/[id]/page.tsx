@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ProgramCard } from "@/components/programs/program-card";
 import { Claim, ClaimList, ClaimSources } from "@/components/claim";
 import { GenericDetails, LabelledDetail, LabelledDetailList } from "@/components/labelled-detail";
 import { ClusterScatterChart } from "@/components/programs/cluster-scatter-chart";
@@ -33,6 +34,12 @@ import {
 } from "@/lib/relations";
 import { classifyOfficialMinimum, gradeRanges } from "@/lib/averages";
 import {
+  getSplitParams,
+  getSplitProgram,
+  getSuccessors,
+  type SplitProgram,
+} from "@/lib/split-programs";
+import {
   getAllPrograms,
   getCategoryLabel,
   getContradictionById,
@@ -55,10 +62,15 @@ import type {
 export const revalidate = 3600;
 
 export function generateStaticParams() {
-  return getAllPrograms().map((program) => ({
-    school: program.university_id,
-    id: program.id,
-  }));
+  return [
+    ...getAllPrograms().map((program) => ({
+      school: program.university_id,
+      id: program.id,
+    })),
+    // The two retired URLs, prerendered so a shared link is served from static
+    // HTML like any other page rather than falling through to a 404.
+    ...getSplitParams(),
+  ];
 }
 
 export async function generateMetadata({
@@ -67,6 +79,23 @@ export async function generateMetadata({
   params: Promise<{ school: string; id: string }>;
 }): Promise<Metadata> {
   const { school: schoolSlug, id } = await params;
+
+  const split = getSplitProgram(schoolSlug, id);
+  if (split) {
+    const successors = getSuccessors(split);
+    return {
+      title: "This program was split in two",
+      description: `This page now covers ${successors
+        .map((program) => program.name)
+        .join(" and ")}. Choose the one you are applying to.`,
+      alternates: { canonical: `/programs/${schoolSlug}/${id}` },
+      // Kept out of the index deliberately: these URLs exist to catch inbound
+      // links, not to compete with the two real program pages. `follow` stays
+      // on so the links through to the successors are still crawled.
+      robots: { index: false, follow: true },
+    };
+  }
+
   const program = getProgramById(id);
   if (!program || program.university_id !== schoolSlug) return {};
 
@@ -113,6 +142,14 @@ export default async function ProgramPage({
   params: Promise<{ school: string; id: string }>;
 }) {
   const { school: schoolSlug, id } = await params;
+
+  // A retired URL from the schema change. Served as a choice, never redirected
+  // to one of the two — see lib/split-programs.ts.
+  const split = getSplitProgram(schoolSlug, id);
+  if (split) {
+    return <SplitProgramPage split={split} schoolSlug={schoolSlug} />;
+  }
+
   const program = getProgramById(id);
 
   if (!program || program.university_id !== schoolSlug) {
@@ -239,6 +276,69 @@ export default async function ProgramPage({
 
       <ProgramJsonLd program={program} schoolSlug={schoolSlug} />
     </>
+  );
+}
+
+/* ── Split programs ──────────────────────────────────────────────────────── */
+
+/**
+ * The page a retired URL serves.
+ *
+ * It states plainly that the program was split and offers both successors. It
+ * does not recommend one, does not order them by anything meaningful, and does
+ * not redirect — the whole point is that the data does not say which successor
+ * an old link meant, so the choice goes to the reader.
+ *
+ * The cards are the same <ProgramCard> the browse grid uses, so each one
+ * already carries the gatekeeping badge, the supp-app line, the next deadline
+ * and the OUAC codes.
+ */
+function SplitProgramPage({
+  split,
+  schoolSlug,
+}: {
+  split: SplitProgram;
+  schoolSlug: string;
+}) {
+  const successors = getSuccessors(split);
+  const today = todayISO();
+  const universityName = successors[0]?.university ?? schoolSlug;
+
+  return (
+    <main className="shell pt-6 pb-[var(--rhythm-section)] motion-safe:animate-fade-rise-sm">
+      <Breadcrumbs
+        back={{ label: "All programs", href: "/programs" }}
+        items={[
+          { label: "Programs", href: "/programs" },
+          { label: universityName, href: `/programs/${schoolSlug}` },
+          { label: "Split program" },
+        ]}
+      />
+
+      <div className="mt-8">
+        <SectionHeader
+          level={1}
+          label="Two programs"
+          title="This is now two separate programs"
+        />
+        <p className="measure mt-4 text-body text-muted-foreground">
+          The page you followed covered both of these as one entry. They are tracked
+          separately now, because they have different requirements and different
+          deadlines. Pick the one you are applying to.
+        </p>
+      </div>
+
+      <ul className="mt-12 grid grid-cols-1 gap-[var(--gutter)] sm:grid-cols-2">
+        {successors.map((program) => (
+          <ProgramCard
+            key={program.id}
+            program={program}
+            today={today}
+            categoryLabel={getCategoryLabel(program.category)}
+          />
+        ))}
+      </ul>
+    </main>
   );
 }
 
